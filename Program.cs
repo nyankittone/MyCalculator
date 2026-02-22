@@ -134,6 +134,72 @@ class Program {
         }
     }
 
+    private static IExpression BuildTree(IEnumerable<string> tokens) {
+        // A valid expression should have tokens representing numbers for the first and last token.
+        // Middle tokens should alternate between an operator and a number.
+        (IExpression? left, IExpression? right) = (null, null);
+        string? oldAddOperator = null;
+
+        using(var enumerator = tokens.GetEnumerator()) {
+            if(!enumerator.MoveNext()) {
+                throw new NotImplementedException("TODO: Implement error for no expression passed");
+            }
+            right = new Number(enumerator.Current); // TODO: Add exception handling here
+
+            // read two tokens at a time, first one should be an operator, second should be a number
+            while(enumerator.MoveNext()) {
+                string operatorToken = enumerator.Current;
+                if(!enumerator.MoveNext()) {
+                    throw new NotImplementedException("TODO: Implement unbalanced expression error");
+                }
+
+                string operand = enumerator.Current;
+
+                // now what???
+                // We need to have two maintained trees: one for addition/subtraction, and
+                // a lower one for multiplication/division...
+                switch(operatorToken) {
+                    case "*":
+                        right = new Multiply(right, new Number(operand));
+                        break;
+                    case "/":
+                        right = new Divide(right, new Number(operand));
+                        break;
+                    case "+":
+                    case "-":
+                        if(left is IExpression theLeft) {
+                            if(oldAddOperator == "+") {
+                                left = new Add(theLeft, right);
+                            } else if(oldAddOperator == "-") {
+                                left = new Subtract(theLeft, right);
+                            } else {
+                                throw new NotImplementedException("wtf is this operator bruh");
+                            }
+                        } else {
+                            left = right; // Idk if this is right lol
+                        }
+
+                        oldAddOperator = operatorToken;
+                        right = new Number(operand);
+                        break;
+                    default:
+                        throw new NotImplementedException("brooooooo wtf is this operator LMAOOO");
+                }
+            }
+        }
+
+        return (left, right, oldAddOperator) switch {
+            (null, null, _) => throw new Exception("Both left and right are null. How???"),
+            (null, _, _) => right,
+            (_, null, _) => left,
+            (_, _, "+") => new Add(left, right),
+            (_, _, "-") => new Subtract(left, right),
+            (_, _, "*") => new Multiply(left, right),
+            (_, _, "/") => new Divide(left, right),
+            _ => throw new Exception("meow :3"),
+        };
+    }
+
     private static decimal Resolve(string input) {
         // My expression resolver should support:
         // addition, subtraction, multiplication, division, and exponents
@@ -148,9 +214,8 @@ class Program {
     static void Main(string[] args) {
         Console.Error.Write("> ");
         while(Console.ReadLine() is string line) {
-            foreach(string token in Tokenize(line)) {
-                Console.WriteLine($"\"{token}\"");
-            }
+            IExpression expr = BuildTree(Tokenize(line));
+            Console.WriteLine(expr.Evaluate());
 
             Console.Error.Write("> ");
         }
