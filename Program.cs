@@ -1,4 +1,9 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿// TODO: Fix bug where negative numbers are unrepresentable.
+// TODO: Add error handling in the tokenizer and parser.
+// TODO: Add handling of parenthesis in the wat that I want.
+// TODO: Add exponent support with "**" as the operator.
+// TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
