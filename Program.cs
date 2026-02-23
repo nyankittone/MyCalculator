@@ -1,5 +1,5 @@
-﻿// TODO: Add error handling in the tokenizer and parser.
-// TODO: Add handling of parenthesis in the wat that I want.
+﻿// TODO: Add handling of parenthesis in the way that I want.
+// TODO: Add error handling in the tokenizer and parser.
 // TODO: Add exponent support with "**" as the operator.
 // TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc.
 // TODO: Add support for defining custom functions.
@@ -18,6 +18,8 @@ enum LexemeID {
     Subtract,
     Multiply,
     Divide,
+    IncPrecedence,
+    DecPrecedence,
     Func,
 }
 
@@ -36,6 +38,7 @@ struct Lexeme {
 
     public static Lexeme Number(string token) => new Lexeme(LexemeID.Number, token);
     public static Lexeme Operator(string token) => new Lexeme(LexemeID.Operator, token);
+    public static Lexeme DecPrecedence(string token) => new Lexeme(LexemeID.DecPrecedence, token);
 }
 
 // We're going to make the parser also take the role of the lexer, for convenience on my end bc I
@@ -182,6 +185,7 @@ class Program {
 
     // TODO: This parser ignores the lexer's identifiers of what kind of lexeme each element is.
     // I'll want to rewrite this to make it actually use that information.
+    // TODO: Clean up parser code...
     private static IExpression BuildTree(IEnumerable<Lexeme> tokens) {
         IExpression MergeMid(IExpression? left, IExpression right, string? op) {
             if(left is IExpression theLeft) {
@@ -245,7 +249,7 @@ class Program {
                                 throw new NotImplementedException("wtf is this operator bruh");
                             }
                         } else {
-                            left = mid; // Idk if this is right lol
+                            left = mid;
                         }
 
                         oldAddOperator = operatorToken;
@@ -283,11 +287,23 @@ class Program {
     }
 
     static void Main(string[] args) {
+        bool printLexemes = false;
+        foreach(string arg in args) {
+            if(arg == "--print-lexemes") {
+                printLexemes = true;
+            }
+        }
+
         Console.Error.Write("> ");
         while(Console.ReadLine() is string line) {
-            IExpression expr = BuildTree(Lex(line));
-            Console.WriteLine(expr.Evaluate());
+            IExpression expr = BuildTree(Lex(line).Select (
+                printLexemes ? (Func<Lexeme, Lexeme>)((lexeme) => { // TODO: Print colors better...
+                    Console.Error.WriteLine($"\x1b[95m{lexeme}\x1b[m");
+                    return lexeme;
+                }) : (l) => l
+            ));
 
+            Console.WriteLine(expr.Evaluate());
             Console.Error.Write("> ");
         }
     }
