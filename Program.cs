@@ -178,7 +178,7 @@ class Program {
         }
     }
 
-    private static IExpression BuildTree(IEnumerable<string> tokens) {
+    private static IExpression BuildTree(IEnumerable<Lexeme> tokens) {
         // A valid expression should have tokens representing numbers for the first and last token.
         // Middle tokens should alternate between an operator and a number.
         (IExpression? left, IExpression? right) = (null, null);
@@ -188,16 +188,16 @@ class Program {
             if(!enumerator.MoveNext()) {
                 throw new NotImplementedException("TODO: Implement error for no expression passed");
             }
-            right = new Number(enumerator.Current); // TODO: Add exception handling here
+            right = new Number(enumerator.Current.token); // TODO: Add exception handling here
 
             // read two tokens at a time, first one should be an operator, second should be a number
             while(enumerator.MoveNext()) {
-                string operatorToken = enumerator.Current;
+                string operatorToken = enumerator.Current.token;
                 if(!enumerator.MoveNext()) {
                     throw new NotImplementedException("TODO: Implement unbalanced expression error");
                 }
 
-                string operand = enumerator.Current;
+                string operand = enumerator.Current.token;
 
                 // now what???
                 // We need to have two maintained trees: one for addition/subtraction, and
