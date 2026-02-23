@@ -114,16 +114,10 @@ class Program {
                 // get operator
                 switch(match.Value) {
                     case "+":
-                        yield return "+";
-                        break;
                     case "-":
-                        yield return "-";
-                        break;
                     case "*":
-                        yield return "*";
-                        break;
                     case "/":
-                        yield return "/";
+                        yield return match.Value;
                         break;
                     default:
                         throw new NotImplementedException("wtf is this operator bruh");
