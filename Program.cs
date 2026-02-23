@@ -13,6 +13,7 @@ namespace Calculator;
 
 enum LexemeID {
     Number,
+    Operator,
     Add,
     Subtract,
     Multiply,
@@ -20,17 +21,31 @@ enum LexemeID {
     Func,
 }
 
+struct Lexeme {
+    public LexemeID ID {get;}
+    public string? token {get;}
+
+    private Lexeme(LexemeID ID, string? token) {
+        this.ID = ID;
+        this.token = token;
+    }
+
+    public override string ToString() {
+        return $"{ID}({token})";
+    }
+
+    public static Lexeme Number(string token) => new Lexeme(LexemeID.Number, token);
+    public static Lexeme Operator(string token) => new Lexeme(LexemeID.Operator, token);
+}
+
 // We're going to make the parser also take the role of the lexer, for convenience on my end bc I
 // don't feel like being smart right now.
 interface IExpression {
-    public LexemeID ID {get;}
     public decimal Evaluate();
 }
 
 class Number : IExpression {
     private decimal number;
-    public LexemeID ID {get;} = LexemeID.Number;
-
     public Number(string token) {
         number = Decimal.Parse(token); // TODO: Think about error handling here.
     }
@@ -39,7 +54,6 @@ class Number : IExpression {
 }
 
 abstract class Operator : IExpression {
-    public abstract LexemeID ID {get;}
     protected IExpression left;
     protected IExpression right;
 
@@ -54,37 +68,27 @@ abstract class Operator : IExpression {
 // I reeeeeally wish I didn't have to explicitly mention the constructor in every derived class.
 // That's a little annoying.
 class Add : Operator {
-    public override LexemeID ID {get;} = LexemeID.Add;
     public Add(IExpression left, IExpression right) : base(left, right) {}
-
     public override decimal Evaluate() => left.Evaluate() + right.Evaluate();
 }
 
 class Subtract : Operator {
-    public override LexemeID ID {get;} = LexemeID.Subtract;
     public Subtract(IExpression left, IExpression right) : base(left, right) {}
-
     public override decimal Evaluate() => left.Evaluate() - right.Evaluate();
 }
 
 class Multiply : Operator {
-    public override LexemeID ID {get;} = LexemeID.Multiply;
     public Multiply(IExpression left, IExpression right) : base(left, right) {}
-
     public override decimal Evaluate() => left.Evaluate() * right.Evaluate();
 }
 
 class Divide : Operator {
-    public override LexemeID ID {get;} = LexemeID.Divide;
     public Divide(IExpression left, IExpression right) : base(left, right) {}
-
     public override decimal Evaluate() => left.Evaluate() / right.Evaluate();
 }
 
 class Sqrt : IExpression {
-    public LexemeID ID {get;} = LexemeID.Func;
     private IExpression unsquared;
-
     public Sqrt(IExpression expr) {
         unsquared = expr;
     }
@@ -94,41 +98,82 @@ class Sqrt : IExpression {
 }
 
 class Program {
-    private static IEnumerable<string> Tokenize(string input) {
-        RE.Regex re = new(@"[\+\-\*\/]");
+    private static IEnumerable<Lexeme> Lex(string input) {
+        Nullable<int> CheckNumber(string input) {
+            if(input.Length == 0) {
+                return null;
+            }
+
+            int returned = 0;
+            if(input[0] == '+' || input[0] == '-') {
+                returned++;
+            }
+
+            RE.Match leftMatch = RE.Regex.Match(input[returned..], @"^\d+");
+            if(leftMatch.Success) {
+                returned += leftMatch.Length;
+            }
+
+            if(input[returned..].Length == 0 || input[returned] != '.') {
+                return leftMatch.Success ? returned : null;
+            }
+
+            returned++;
+
+            RE.Match rightMatch = RE.Regex.Match(input[returned..], @"^\d+");
+            if(rightMatch.Success) {
+                returned += rightMatch.Length;
+                return returned;
+            }
+
+            return leftMatch.Success ? returned : null;
+        }
+
+        Nullable<int> CheckOperator(string input) {
+            if(input.Length == 0) {
+                return null;
+            }
+
+            return input[0] switch {
+                '+' or '-' or '/' => 1,
+                '*' => input.Length > 1 && input[1] == '*' ? 2 : 1,
+                _ => null,
+            };
+        }
+
+        RE.Regex reNumber = new(@"^([+-]?\d*\.\d*)|([+-]?\d+)");
+        RE.Regex reOperator = new(@"^[\+\-\*\/]");
 
         foreach(string bigToken in String.Concat(input.Select((thing) => thing == '\t' ? ' ' : thing))
             .Split(" ", StringSplitOptions.RemoveEmptyEntries))
         {
-            var matches = re.Matches(bigToken);
-            int numberBegin = 0;
+            int startIndex = 0;
 
-            foreach(RE.Match match in matches) {
-                // get token to the left of the operator
-                int numberEnd = match.Index;
-                string number = bigToken[numberBegin..numberEnd];
-                if(number.Length > 0) {
-                    yield return number;
-                }
-
-                // get operator
-                switch(match.Value) {
-                    case "+":
-                    case "-":
-                    case "*":
-                    case "/":
-                        yield return match.Value;
-                        break;
-                    default:
-                        throw new NotImplementedException("wtf is this operator bruh");
-                }
-
-                numberBegin = numberEnd + match.Length;
+            // TODO: Consider removing this while shuffling around some stuff in the while loop
+            // below. I think this part is redundant.
+            if(CheckNumber(bigToken) is int length) {
+                yield return Lexeme.Number(bigToken[..length]);
+                startIndex = length;
             }
 
-            string finalNumber = bigToken[numberBegin..];
-            if(finalNumber.Length > 0) {
-                yield return finalNumber;
+            while(bigToken[startIndex..].Length > 0) {
+                int oldStart = startIndex;
+
+                if(CheckOperator(bigToken[startIndex..]) is int len2) {
+                    yield return Lexeme.Operator(bigToken[startIndex..(startIndex+len2)]);
+                    startIndex += len2;
+                }
+
+                if(CheckNumber(bigToken[startIndex..]) is int len) {
+                    yield return Lexeme.Number(bigToken[startIndex..(startIndex+len)]);
+                    startIndex += len;
+                }
+
+                if(oldStart == startIndex) {
+                    throw new NotImplementedException (
+                        "TODO: Find a reasonable way to recover from an invalid token."
+                    );
+                }
             }
         }
     }
@@ -213,8 +258,13 @@ class Program {
     static void Main(string[] args) {
         Console.Error.Write("> ");
         while(Console.ReadLine() is string line) {
-            IExpression expr = BuildTree(Tokenize(line));
-            Console.WriteLine(expr.Evaluate());
+            // IExpression expr = BuildTree(Tokenize(line));
+            // Console.WriteLine(expr.Evaluate());
+
+
+            foreach(Lexeme lexeme in Lex(line)) {
+                Console.WriteLine(lexeme);
+            }
 
             Console.Error.Write("> ");
         }
