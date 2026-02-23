@@ -42,6 +42,7 @@ struct Lexeme
 
     public static Lexeme Number(string token) => new Lexeme(LexemeID.Number, token);
     public static Lexeme Operator(string token) => new Lexeme(LexemeID.Operator, token);
+    public static Lexeme IncPrecedence(string token) => new Lexeme(LexemeID.IncPrecedence, token);
     public static Lexeme DecPrecedence(string token) => new Lexeme(LexemeID.DecPrecedence, token);
 }
 
@@ -197,6 +198,19 @@ class Program
                 {
                     yield return Lexeme.Operator(bigToken[startIndex..(startIndex + len2)]);
                     startIndex += len2;
+                }
+
+                // Bro I just started using :Format for once. I fucking hate the C# convention of
+                // formatting
+                if (bigToken[startIndex] == '(')
+                {
+                    yield return Lexeme.IncPrecedence("(");
+                    startIndex++;
+                }
+                else if (bigToken[startIndex] == ')')
+                {
+                    yield return Lexeme.DecPrecedence(")");
+                    startIndex++;
                 }
 
                 if (CheckNumber(bigToken[startIndex..]) is int len)
