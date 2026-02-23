@@ -1,8 +1,8 @@
-﻿// TODO: Fix bug where negative numbers are unrepresentable.
-// TODO: Add error handling in the tokenizer and parser.
+﻿// TODO: Add error handling in the tokenizer and parser.
 // TODO: Add handling of parenthesis in the wat that I want.
 // TODO: Add exponent support with "**" as the operator.
-// TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc
+// TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc.
+// TODO: Add support for defining custom functions.
 
 using System;
 using System.Collections.Generic;
@@ -87,6 +87,11 @@ class Divide : Operator {
     public override decimal Evaluate() => left.Evaluate() / right.Evaluate();
 }
 
+class Exponent : Operator {
+    public Exponent(IExpression left, IExpression right) : base(left, right) {}
+    public override decimal Evaluate() => (decimal)Math.Pow((double)left.Evaluate(), (double)right.Evaluate());
+}
+
 class Sqrt : IExpression {
     private IExpression unsquared;
     public Sqrt(IExpression expr) {
@@ -141,9 +146,6 @@ class Program {
             };
         }
 
-        RE.Regex reNumber = new(@"^([+-]?\d*\.\d*)|([+-]?\d+)");
-        RE.Regex reOperator = new(@"^[\+\-\*\/]");
-
         foreach(string bigToken in String.Concat(input.Select((thing) => thing == '\t' ? ' ' : thing))
             .Split(" ", StringSplitOptions.RemoveEmptyEntries))
         {
@@ -178,6 +180,8 @@ class Program {
         }
     }
 
+    // TODO: This parser ignores the lexer's identifiers of what kind of lexeme each element is.
+    // I'll want to rewrite this to make it actually use that information.
     private static IExpression BuildTree(IEnumerable<Lexeme> tokens) {
         // A valid expression should have tokens representing numbers for the first and last token.
         // Middle tokens should alternate between an operator and a number.
