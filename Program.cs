@@ -258,13 +258,8 @@ class Program {
     static void Main(string[] args) {
         Console.Error.Write("> ");
         while(Console.ReadLine() is string line) {
-            // IExpression expr = BuildTree(Tokenize(line));
-            // Console.WriteLine(expr.Evaluate());
-
-
-            foreach(Lexeme lexeme in Lex(line)) {
-                Console.WriteLine(lexeme);
-            }
+            IExpression expr = BuildTree(Lex(line));
+            Console.WriteLine(expr.Evaluate());
 
             Console.Error.Write("> ");
         }
