@@ -183,10 +183,24 @@ class Program {
     // TODO: This parser ignores the lexer's identifiers of what kind of lexeme each element is.
     // I'll want to rewrite this to make it actually use that information.
     private static IExpression BuildTree(IEnumerable<Lexeme> tokens) {
+        IExpression MergeMid(IExpression? left, IExpression right, string? op) {
+            if(left is IExpression theLeft) {
+                left = op switch {
+                    "*" => new Multiply(theLeft, right),
+                    "/" => new Divide(theLeft, right),
+                    _ => throw new NotImplementedException("Not multiply or divide here"),
+                };
+            } else {
+                left = right; // Idk if this is right lol
+            }
+            return left;
+        }
+
         // A valid expression should have tokens representing numbers for the first and last token.
         // Middle tokens should alternate between an operator and a number.
-        (IExpression? left, IExpression? right) = (null, null);
+        (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
         string? oldAddOperator = null;
+        string? oldMultOperator = null;
 
         using(var enumerator = tokens.GetEnumerator()) {
             if(!enumerator.MoveNext()) {
@@ -207,28 +221,36 @@ class Program {
                 // We need to have two maintained trees: one for addition/subtraction, and
                 // a lower one for multiplication/division...
                 switch(operatorToken) {
-                    case "*":
-                        right = new Multiply(right, new Number(operand));
+                    case "**":
+                        right = new Exponent(right, new Number(operand));
                         break;
+                    case "*":
                     case "/":
-                        right = new Divide(right, new Number(operand));
+                        mid = MergeMid(mid, right, oldMultOperator);
+                        oldMultOperator = operatorToken;
+                        right = new Number(operand);
                         break;
                     case "+":
                     case "-":
+                        mid = MergeMid(mid, right, oldMultOperator);
+                        right = new Number(operand);
+                        oldMultOperator = null;
+
                         if(left is IExpression theLeft) {
                             if(oldAddOperator == "+") {
-                                left = new Add(theLeft, right);
+                                left = new Add(theLeft, mid);
                             } else if(oldAddOperator == "-") {
-                                left = new Subtract(theLeft, right);
+                                left = new Subtract(theLeft, mid);
                             } else {
                                 throw new NotImplementedException("wtf is this operator bruh");
                             }
                         } else {
-                            left = right; // Idk if this is right lol
+                            left = mid; // Idk if this is right lol
                         }
 
                         oldAddOperator = operatorToken;
-                        right = new Number(operand);
+                        // mid = new Number(operand);
+                        mid = null;
                         break;
                     default:
                         throw new NotImplementedException("brooooooo wtf is this operator LMAOOO");
@@ -236,14 +258,15 @@ class Program {
             }
         }
 
-        return (left, right, oldAddOperator) switch {
-            (null, null, _) => throw new Exception("Both left and right are null. How???"),
-            (null, _, _) => right,
+        mid = MergeMid(mid, right, oldMultOperator);
+        return (left, mid, oldAddOperator) switch {
+            (null, null, _) => throw new Exception("All are null. How???"),
+            (null, _, _) => mid,
             (_, null, _) => left,
-            (_, _, "+") => new Add(left, right),
-            (_, _, "-") => new Subtract(left, right),
-            (_, _, "*") => new Multiply(left, right),
-            (_, _, "/") => new Divide(left, right),
+            (_, _, "+") => new Add(left, mid),
+            (_, _, "-") => new Subtract(left, mid),
+            (_, _, "*") => new Multiply(left, mid),
+            (_, _, "/") => new Divide(left, mid),
             _ => throw new Exception("meow :3"),
         };
     }
