@@ -341,18 +341,6 @@ class Program
         };
     }
 
-    private static decimal Resolve(string input)
-    {
-        // My expression resolver should support:
-        // addition, subtraction, multiplication, division, and exponents
-        // predefined functions to compute
-        // order of operations
-        // reasonable errors
-
-        // Create a tokenizer first
-        return 42;
-    }
-
     static void Main(string[] args)
     {
         bool printLexemes = false;
@@ -367,13 +355,14 @@ class Program
         Console.Error.Write("> ");
         while (Console.ReadLine() is string line)
         {
-            IExpression expr = BuildTree(Lex(line).Select(
-                printLexemes ? (Func<Lexeme, Lexeme>)((lexeme) =>
-                { // TODO: Print colors better...
+            Lexeme[] lexemes = Lex(line).ToArray();
+            if(printLexemes) {
+                foreach(Lexeme lexeme in lexemes) {
                     Console.Error.WriteLine($"\x1b[95m{lexeme}\x1b[m");
-                    return lexeme;
-                }) : (l) => l
-            ));
+                }
+            }
+
+            IExpression expr = BuildTree(lexemes);
 
             Console.WriteLine(expr.Evaluate());
             Console.Error.Write("> ");
