@@ -27,9 +27,9 @@ enum LexemeID
 struct Lexeme
 {
     public LexemeID ID { get; }
-    public string? token { get; }
+    public string token { get; }
 
-    private Lexeme(LexemeID ID, string? token)
+    private Lexeme(LexemeID ID, string token)
     {
         this.ID = ID;
         this.token = token;
@@ -149,48 +149,54 @@ static class Parser
             _ => throw new NotImplementedException("Not add or subtract here"),
         };
 
-    private static IExpression ParseRec(IEnumerator<Lexeme> tokens) {
+    private static IExpression MaybeRecurse(IEnumerator<Lexeme> tokens, uint depth) {
+        return tokens.Current.ID == LexemeID.IncPrecedence ?
+            ParseRec(tokens, (tokens) => tokens.MoveNext() switch {
+                    true => tokens.Current.ID == LexemeID.DecPrecedence ? null : tokens.Current,
+                    false => null,
+                    }, depth + 1) : new Number(tokens.Current.token);
+    }
+
+    private static IExpression ParseRec(IEnumerator<Lexeme> tokens, Func<IEnumerator<Lexeme>, Lexeme?> tryNext, uint depth)
+    {
         (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
         string? oldAddOperator = null;
         string? oldMultOperator = null;
 
-        if (!tokens.MoveNext())
+        if (!tryNext(tokens).HasValue)
         {
             throw new NotImplementedException("TODO: Implement error for no expression passed");
         }
 
-        // TODO: Ckeck the token type here. It should not be an operator, ever. If it's a
-        // parenthesis, resolve the tree for a parenthesis, and do something with the returned
-        // tree.
-        right = new Number(tokens.Current.token);
+        right = MaybeRecurse(tokens, depth);
 
         // read two tokens at a time, first one should be an operator, second should be a number
-        while (tokens.MoveNext())
+        while (tryNext(tokens).HasValue)
         {
             string operatorToken = tokens.Current.token;
-            if (!tokens.MoveNext())
+            if (!tryNext(tokens).HasValue)
             {
                 throw new NotImplementedException("TODO: Implement unbalanced expression error");
             }
 
-            string operand = tokens.Current.token;
+            IExpression operand = MaybeRecurse(tokens, depth);
 
             // now what???
             switch (operatorToken)
             {
                 case "**":
-                    right = new Exponent(right, new Number(operand));
+                    right = new Exponent(right, operand);
                     break;
                 case "*":
                 case "/":
                     mid = Merge(mid, right, oldMultOperator, MergeMult);
                     oldMultOperator = operatorToken;
-                    right = new Number(operand);
+                    right = operand;
                     break;
                 case "+":
                 case "-":
                     mid = Merge(mid, right, oldMultOperator, MergeMult);
-                    right = new Number(operand);
+                    right = operand;
                     oldMultOperator = null;
                     left = Merge(left, mid, oldAddOperator, MergeAdd);
                     oldAddOperator = operatorToken;
@@ -200,6 +206,10 @@ static class Parser
                 default:
                     throw new NotImplementedException("brooooooo wtf is this operator LMAOOO");
             }
+        }
+
+        if(depth > 0 && tokens.Current.ID is not LexemeID.DecPrecedence) {
+            throw new NotImplementedException("Unbalanced parentheses");
         }
 
         mid = Merge(mid, right, oldMultOperator, MergeMult);
@@ -223,7 +233,11 @@ static class Parser
     {
         using (var enumerator = tokens.GetEnumerator())
         {
-            return ParseRec(enumerator);
+            return ParseRec(enumerator, (tokens) => tokens.MoveNext() switch
+            {
+                true => tokens.Current,
+                false => null,
+            }, 0);
         }
     }
 }
