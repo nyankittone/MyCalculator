@@ -149,87 +149,56 @@ static class Parser
             _ => throw new NotImplementedException("Not add or subtract here"),
         };
 
-
-    // TODO: This parser ignores the lexer's identifiers of what kind of lexeme each element is.
-    // I'll want to rewrite this to make it actually use that information.
-    // TODO: Clean up parser code...
-    public static IExpression Parse(IEnumerable<Lexeme> tokens)
-    {
-        // A valid expression should have tokens representing numbers for the first and last token.
-        // Middle tokens should alternate between an operator and a number.
+    private static IExpression ParseRec(IEnumerator<Lexeme> tokens) {
         (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
         string? oldAddOperator = null;
         string? oldMultOperator = null;
 
-        using (var enumerator = tokens.GetEnumerator())
+        if (!tokens.MoveNext())
         {
-            if (!enumerator.MoveNext())
+            throw new NotImplementedException("TODO: Implement error for no expression passed");
+        }
+
+        // TODO: Ckeck the token type here. It should not be an operator, ever. If it's a
+        // parenthesis, resolve the tree for a parenthesis, and do something with the returned
+        // tree.
+        right = new Number(tokens.Current.token);
+
+        // read two tokens at a time, first one should be an operator, second should be a number
+        while (tokens.MoveNext())
+        {
+            string operatorToken = tokens.Current.token;
+            if (!tokens.MoveNext())
             {
-                throw new NotImplementedException("TODO: Implement error for no expression passed");
+                throw new NotImplementedException("TODO: Implement unbalanced expression error");
             }
 
-            // TODO: Ckeck the token type here. It should not be an operator, ever. If it's a
-            // parenthesis, resolve the tree for a parenthesis, and do something with the returned
-            // tree.
-            right = new Number(enumerator.Current.token);
+            string operand = tokens.Current.token;
 
-            // read two tokens at a time, first one should be an operator, second should be a number
-            while (enumerator.MoveNext())
+            // now what???
+            switch (operatorToken)
             {
-                string operatorToken = enumerator.Current.token;
-                if (!enumerator.MoveNext())
-                {
-                    throw new NotImplementedException("TODO: Implement unbalanced expression error");
-                }
-
-                string operand = enumerator.Current.token;
-
-                // now what???
-                switch (operatorToken)
-                {
-                    case "**":
-                        right = new Exponent(right, new Number(operand));
-                        break;
-                    case "*":
-                    case "/":
-                        mid = Merge(mid, right, oldMultOperator, MergeMult);
-                        oldMultOperator = operatorToken;
-                        right = new Number(operand);
-                        break;
-                    case "+":
-                    case "-":
-                        mid = Merge(mid, right, oldMultOperator, MergeMult);
-                        right = new Number(operand);
-                        oldMultOperator = null;
-
-                        left = Merge(left, mid, oldAddOperator, MergeAdd);
-                        // if (left is IExpression theLeft)
-                        // {
-                        //     if (oldAddOperator == "+")
-                        //     {
-                        //         left = new Add(theLeft, mid);
-                        //     }
-                        //     else if (oldAddOperator == "-")
-                        //     {
-                        //         left = new Subtract(theLeft, mid);
-                        //     }
-                        //     else
-                        //     {
-                        //         throw new NotImplementedException("wtf is this operator bruh");
-                        //     }
-                        // }
-                        // else
-                        // {
-                        //     left = mid;
-                        // }
-
-                        oldAddOperator = operatorToken;
-                        // mid = new Number(operand);
-                        mid = null;
-                        break;
-                    default:
-                        throw new NotImplementedException("brooooooo wtf is this operator LMAOOO");
-                }
+                case "**":
+                    right = new Exponent(right, new Number(operand));
+                    break;
+                case "*":
+                case "/":
+                    mid = Merge(mid, right, oldMultOperator, MergeMult);
+                    oldMultOperator = operatorToken;
+                    right = new Number(operand);
+                    break;
+                case "+":
+                case "-":
+                    mid = Merge(mid, right, oldMultOperator, MergeMult);
+                    right = new Number(operand);
+                    oldMultOperator = null;
+                    left = Merge(left, mid, oldAddOperator, MergeAdd);
+                    oldAddOperator = operatorToken;
+                    // mid = new Number(operand);
+                    mid = null;
+                    break;
+                default:
+                    throw new NotImplementedException("brooooooo wtf is this operator LMAOOO");
             }
         }
 
@@ -245,6 +214,17 @@ static class Parser
             (_, _, "/") => new Divide(left, mid),
             _ => throw new Exception("meow :3"),
         };
+    }
+
+    // TODO: This parser ignores the lexer's identifiers of what kind of lexeme each element is.
+    // I'll want to rewrite this to make it actually use that information.
+    // TODO: Clean up parser code...
+    public static IExpression Parse(IEnumerable<Lexeme> tokens)
+    {
+        using (var enumerator = tokens.GetEnumerator())
+        {
+            return ParseRec(enumerator);
+        }
     }
 }
 
