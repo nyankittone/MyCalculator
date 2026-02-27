@@ -122,6 +122,124 @@ class Sqrt : IExpression
     public decimal Evaluate() => (decimal)Math.Sqrt((double)unsquared.Evaluate());
 }
 
+static class Parser {
+    private static IExpression MergeMid(IExpression? left, IExpression right, string? op)
+    {
+        if (left is IExpression theLeft)
+        {
+            left = op switch
+            {
+                "*" => new Multiply(theLeft, right),
+                "/" => new Divide(theLeft, right),
+                _ => throw new NotImplementedException("Not multiply or divide here"),
+            };
+        }
+        else
+        {
+            left = right; // Idk if this is right lol
+        }
+        return left;
+    }
+
+    // TODO: This parser ignores the lexer's identifiers of what kind of lexeme each element is.
+    // I'll want to rewrite this to make it actually use that information.
+    // TODO: Clean up parser code...
+    public static IExpression Parse(IEnumerable<Lexeme> tokens)
+    {
+        // A valid expression should have tokens representing numbers for the first and last token.
+        // Middle tokens should alternate between an operator and a number.
+        (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
+        string? oldAddOperator = null;
+        string? oldMultOperator = null;
+
+        using (var enumerator = tokens.GetEnumerator())
+        {
+            if (!enumerator.MoveNext())
+            {
+                throw new NotImplementedException("TODO: Implement error for no expression passed");
+            }
+
+            // TODO: Ckeck the token type here. It should not be an operator, ever. If it's a
+            // parenthesis, resolve the tree for a parenthesis, and do something with the returned
+            // tree.
+            right = new Number(enumerator.Current.token);
+
+            // read two tokens at a time, first one should be an operator, second should be a number
+            while (enumerator.MoveNext())
+            {
+                string operatorToken = enumerator.Current.token;
+                if (!enumerator.MoveNext())
+                {
+                    throw new NotImplementedException("TODO: Implement unbalanced expression error");
+                }
+
+                string operand = enumerator.Current.token;
+
+                // now what???
+                // We need to have two maintained trees: one for addition/subtraction, and
+                // a lower one for multiplication/division...
+                switch (operatorToken)
+                {
+                    case "**":
+                        right = new Exponent(right, new Number(operand));
+                        break;
+                    case "*":
+                    case "/":
+                        mid = MergeMid(mid, right, oldMultOperator);
+                        oldMultOperator = operatorToken;
+                        right = new Number(operand);
+                        break;
+                    case "+":
+                    case "-":
+                        mid = MergeMid(mid, right, oldMultOperator);
+                        right = new Number(operand);
+                        oldMultOperator = null;
+
+                        if (left is IExpression theLeft)
+                        {
+                            if (oldAddOperator == "+")
+                            {
+                                left = new Add(theLeft, mid);
+                            }
+                            else if (oldAddOperator == "-")
+                            {
+                                left = new Subtract(theLeft, mid);
+                            }
+                            else
+                            {
+                                throw new NotImplementedException("wtf is this operator bruh");
+                            }
+                        }
+                        else
+                        {
+                            left = mid;
+                        }
+
+                        oldAddOperator = operatorToken;
+                        // mid = new Number(operand);
+                        mid = null;
+                        break;
+                    default:
+                        throw new NotImplementedException("brooooooo wtf is this operator LMAOOO");
+                }
+            }
+        }
+
+        mid = MergeMid(mid, right, oldMultOperator);
+        return (left, mid, oldAddOperator) switch
+        {
+            (null, null, _) => throw new Exception("All are null. How???"),
+            (null, _, _) => mid,
+            (_, null, _) => left,
+            (_, _, "+") => new Add(left, mid),
+            (_, _, "-") => new Subtract(left, mid),
+            (_, _, "*") => new Multiply(left, mid),
+            (_, _, "/") => new Divide(left, mid),
+            _ => throw new Exception("meow :3"),
+        };
+    }
+}
+
 class Program
 {
     private static IEnumerable<Lexeme> Lex(string input)
@@ -202,21 +320,23 @@ class Program
 
                 // Bro I just started using :Format for once. I fucking hate the C# convention of
                 // formatting
-                if (bigToken[startIndex] == '(')
-                {
-                    yield return Lexeme.IncPrecedence("(");
-                    startIndex++;
-                }
-                else if (bigToken[startIndex] == ')')
-                {
-                    yield return Lexeme.DecPrecedence(")");
-                    startIndex++;
-                }
+                if(bigToken[startIndex..].Length > 0) {
+                    if (bigToken[startIndex] == '(')
+                    {
+                        yield return Lexeme.IncPrecedence("(");
+                        startIndex++;
+                    }
+                    else if (bigToken[startIndex] == ')')
+                    {
+                        yield return Lexeme.DecPrecedence(")");
+                        startIndex++;
+                    }
 
-                if (CheckNumber(bigToken[startIndex..]) is int len)
-                {
-                    yield return Lexeme.Number(bigToken[startIndex..(startIndex + len)]);
-                    startIndex += len;
+                    if (CheckNumber(bigToken[startIndex..]) is int len)
+                    {
+                        yield return Lexeme.Number(bigToken[startIndex..(startIndex + len)]);
+                        startIndex += len;
+                    }
                 }
 
                 if (oldStart == startIndex)
@@ -227,118 +347,6 @@ class Program
                 }
             }
         }
-    }
-
-    // TODO: This parser ignores the lexer's identifiers of what kind of lexeme each element is.
-    // I'll want to rewrite this to make it actually use that information.
-    // TODO: Clean up parser code...
-    private static IExpression BuildTree(IEnumerable<Lexeme> tokens)
-    {
-        IExpression MergeMid(IExpression? left, IExpression right, string? op)
-        {
-            if (left is IExpression theLeft)
-            {
-                left = op switch
-                {
-                    "*" => new Multiply(theLeft, right),
-                    "/" => new Divide(theLeft, right),
-                    _ => throw new NotImplementedException("Not multiply or divide here"),
-                };
-            }
-            else
-            {
-                left = right; // Idk if this is right lol
-            }
-            return left;
-        }
-
-        // A valid expression should have tokens representing numbers for the first and last token.
-        // Middle tokens should alternate between an operator and a number.
-        (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
-        string? oldAddOperator = null;
-        string? oldMultOperator = null;
-
-        using (var enumerator = tokens.GetEnumerator())
-        {
-            if (!enumerator.MoveNext())
-            {
-                throw new NotImplementedException("TODO: Implement error for no expression passed");
-            }
-            right = new Number(enumerator.Current.token); // TODO: Add exception handling here
-
-            // read two tokens at a time, first one should be an operator, second should be a number
-            while (enumerator.MoveNext())
-            {
-                string operatorToken = enumerator.Current.token;
-                if (!enumerator.MoveNext())
-                {
-                    throw new NotImplementedException("TODO: Implement unbalanced expression error");
-                }
-
-                string operand = enumerator.Current.token;
-
-                // now what???
-                // We need to have two maintained trees: one for addition/subtraction, and
-                // a lower one for multiplication/division...
-                switch (operatorToken)
-                {
-                    case "**":
-                        right = new Exponent(right, new Number(operand));
-                        break;
-                    case "*":
-                    case "/":
-                        mid = MergeMid(mid, right, oldMultOperator);
-                        oldMultOperator = operatorToken;
-                        right = new Number(operand);
-                        break;
-                    case "+":
-                    case "-":
-                        mid = MergeMid(mid, right, oldMultOperator);
-                        right = new Number(operand);
-                        oldMultOperator = null;
-
-                        if (left is IExpression theLeft)
-                        {
-                            if (oldAddOperator == "+")
-                            {
-                                left = new Add(theLeft, mid);
-                            }
-                            else if (oldAddOperator == "-")
-                            {
-                                left = new Subtract(theLeft, mid);
-                            }
-                            else
-                            {
-                                throw new NotImplementedException("wtf is this operator bruh");
-                            }
-                        }
-                        else
-                        {
-                            left = mid;
-                        }
-
-                        oldAddOperator = operatorToken;
-                        // mid = new Number(operand);
-                        mid = null;
-                        break;
-                    default:
-                        throw new NotImplementedException("brooooooo wtf is this operator LMAOOO");
-                }
-            }
-        }
-
-        mid = MergeMid(mid, right, oldMultOperator);
-        return (left, mid, oldAddOperator) switch
-        {
-            (null, null, _) => throw new Exception("All are null. How???"),
-            (null, _, _) => mid,
-            (_, null, _) => left,
-            (_, _, "+") => new Add(left, mid),
-            (_, _, "-") => new Subtract(left, mid),
-            (_, _, "*") => new Multiply(left, mid),
-            (_, _, "/") => new Divide(left, mid),
-            _ => throw new Exception("meow :3"),
-        };
     }
 
     static void Main(string[] args)
@@ -362,7 +370,7 @@ class Program
                 }
             }
 
-            IExpression expr = BuildTree(lexemes);
+            IExpression expr = Parser.Parse(lexemes);
 
             Console.WriteLine(expr.Evaluate());
             Console.Error.Write("> ");
