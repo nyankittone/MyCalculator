@@ -1,6 +1,4 @@
-﻿// TODO: Add handling of parenthesis in the way that I want.
-// TODO: Add error handling in the tokenizer and parser.
-// TODO: Add exponent support with "**" as the operator.
+﻿// TODO: Add error handling in the tokenizer and parser.
 // TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc.
 // TODO: Add support for defining custom functions.
 
@@ -148,12 +146,14 @@ static class Parser
             _ => throw new NotImplementedException("Not add or subtract here"),
         };
 
-    private static IExpression MaybeRecurse(IEnumerator<Lexeme> tokens, uint depth) {
+    private static IExpression MaybeRecurse(IEnumerator<Lexeme> tokens, uint depth)
+    {
         return tokens.Current.ID == LexemeID.IncPrecedence ?
-            ParseRec(tokens, (tokens) => tokens.MoveNext() switch {
-                    true => tokens.Current.ID == LexemeID.DecPrecedence ? null : tokens.Current,
-                    false => null,
-                    }, depth + 1) : new Number(tokens.Current.token);
+            ParseRec(tokens, (tokens) => tokens.MoveNext() switch
+            {
+                true => tokens.Current.ID == LexemeID.DecPrecedence ? null : tokens.Current,
+                false => null,
+            }, depth + 1) : new Number(tokens.Current.token);
     }
 
     private static IExpression ParseRec(IEnumerator<Lexeme> tokens, Func<IEnumerator<Lexeme>, Lexeme?> tryNext, uint depth)
@@ -168,9 +168,10 @@ static class Parser
         }
 
         right = MaybeRecurse(tokens, depth);
+        Lexeme? checkLexeme = null;
 
         // read two tokens at a time, first one should be an operator, second should be a number
-        while (tryNext(tokens).HasValue)
+        while ((checkLexeme = tryNext(tokens)).HasValue)
         {
             string operatorToken = tokens.Current.token;
             if (!tryNext(tokens).HasValue)
@@ -207,7 +208,8 @@ static class Parser
             }
         }
 
-        if(depth > 0 && tokens.Current.ID is not LexemeID.DecPrecedence) {
+        if (depth > 0 && checkLexeme is null)
+        {
             throw new NotImplementedException("Unbalanced parentheses");
         }
 
