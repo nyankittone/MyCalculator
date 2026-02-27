@@ -122,24 +122,28 @@ class Sqrt : IExpression
     public decimal Evaluate() => (decimal)Math.Sqrt((double)unsquared.Evaluate());
 }
 
-static class Parser {
-    private static IExpression Merge (
+static class Parser
+{
+    private static IExpression Merge(
         IExpression? left, IExpression right, string? op,
         Func<IExpression, IExpression, string?, IExpression> logic
-    ) => left switch {
+    ) => left switch
+    {
         null => right,
         _ => logic(left, right, op),
     };
 
     private static IExpression MergeMult(IExpression left, IExpression right, string? op) =>
-        op switch {
+        op switch
+        {
             "*" => new Multiply(left, right),
             "/" => new Divide(left, right),
             _ => throw new NotImplementedException("Not multiply or divide here"),
         };
 
     private static IExpression MergeAdd(IExpression left, IExpression right, string? op) =>
-        op switch {
+        op switch
+        {
             "+" => new Add(left, right),
             "-" => new Subtract(left, right),
             _ => throw new NotImplementedException("Not add or subtract here"),
@@ -198,25 +202,26 @@ static class Parser {
                         right = new Number(operand);
                         oldMultOperator = null;
 
-                        if (left is IExpression theLeft)
-                        {
-                            if (oldAddOperator == "+")
-                            {
-                                left = new Add(theLeft, mid);
-                            }
-                            else if (oldAddOperator == "-")
-                            {
-                                left = new Subtract(theLeft, mid);
-                            }
-                            else
-                            {
-                                throw new NotImplementedException("wtf is this operator bruh");
-                            }
-                        }
-                        else
-                        {
-                            left = mid;
-                        }
+                        left = Merge(left, mid, oldAddOperator, MergeAdd);
+                        // if (left is IExpression theLeft)
+                        // {
+                        //     if (oldAddOperator == "+")
+                        //     {
+                        //         left = new Add(theLeft, mid);
+                        //     }
+                        //     else if (oldAddOperator == "-")
+                        //     {
+                        //         left = new Subtract(theLeft, mid);
+                        //     }
+                        //     else
+                        //     {
+                        //         throw new NotImplementedException("wtf is this operator bruh");
+                        //     }
+                        // }
+                        // else
+                        // {
+                        //     left = mid;
+                        // }
 
                         oldAddOperator = operatorToken;
                         // mid = new Number(operand);
@@ -323,7 +328,8 @@ class Program
 
                 // Bro I just started using :Format for once. I fucking hate the C# convention of
                 // formatting
-                if(bigToken[startIndex..].Length > 0) {
+                if (bigToken[startIndex..].Length > 0)
+                {
                     if (bigToken[startIndex] == '(')
                     {
                         yield return Lexeme.IncPrecedence("(");
@@ -367,8 +373,10 @@ class Program
         while (Console.ReadLine() is string line)
         {
             Lexeme[] lexemes = Lex(line).ToArray();
-            if(printLexemes) {
-                foreach(Lexeme lexeme in lexemes) {
+            if (printLexemes)
+            {
+                foreach (Lexeme lexeme in lexemes)
+                {
                     Console.Error.WriteLine($"\x1b[95m{lexeme}\x1b[m");
                 }
             }
