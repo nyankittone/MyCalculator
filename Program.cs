@@ -123,23 +123,28 @@ class Sqrt : IExpression
 }
 
 static class Parser {
-    private static IExpression MergeMid(IExpression? left, IExpression right, string? op)
-    {
-        if (left is IExpression theLeft)
-        {
-            left = op switch
-            {
-                "*" => new Multiply(theLeft, right),
-                "/" => new Divide(theLeft, right),
-                _ => throw new NotImplementedException("Not multiply or divide here"),
-            };
-        }
-        else
-        {
-            left = right; // Idk if this is right lol
-        }
-        return left;
-    }
+    private static IExpression Merge (
+        IExpression? left, IExpression right, string? op,
+        Func<IExpression, IExpression, string?, IExpression> logic
+    ) => left switch {
+        null => right,
+        _ => logic(left, right, op),
+    };
+
+    private static IExpression MergeMult(IExpression left, IExpression right, string? op) =>
+        op switch {
+            "*" => new Multiply(left, right),
+            "/" => new Divide(left, right),
+            _ => throw new NotImplementedException("Not multiply or divide here"),
+        };
+
+    private static IExpression MergeAdd(IExpression left, IExpression right, string? op) =>
+        op switch {
+            "+" => new Add(left, right),
+            "-" => new Subtract(left, right),
+            _ => throw new NotImplementedException("Not add or subtract here"),
+        };
+
 
     // TODO: This parser ignores the lexer's identifiers of what kind of lexeme each element is.
     // I'll want to rewrite this to make it actually use that information.
@@ -176,8 +181,6 @@ static class Parser {
                 string operand = enumerator.Current.token;
 
                 // now what???
-                // We need to have two maintained trees: one for addition/subtraction, and
-                // a lower one for multiplication/division...
                 switch (operatorToken)
                 {
                     case "**":
@@ -185,13 +188,13 @@ static class Parser {
                         break;
                     case "*":
                     case "/":
-                        mid = MergeMid(mid, right, oldMultOperator);
+                        mid = Merge(mid, right, oldMultOperator, MergeMult);
                         oldMultOperator = operatorToken;
                         right = new Number(operand);
                         break;
                     case "+":
                     case "-":
-                        mid = MergeMid(mid, right, oldMultOperator);
+                        mid = Merge(mid, right, oldMultOperator, MergeMult);
                         right = new Number(operand);
                         oldMultOperator = null;
 
@@ -225,7 +228,7 @@ static class Parser {
             }
         }
 
-        mid = MergeMid(mid, right, oldMultOperator);
+        mid = Merge(mid, right, oldMultOperator, MergeMult);
         return (left, mid, oldAddOperator) switch
         {
             (null, null, _) => throw new Exception("All are null. How???"),
