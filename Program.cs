@@ -1,4 +1,5 @@
-﻿// TODO: Add error handling in the tokenizer and parser.
+﻿// TODO: Add sugaring to the tokenizer.
+// TODO: Add error handling in the tokenizer and parser.
 // TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc.
 // TODO: Add support for defining custom functions.
 
@@ -121,6 +122,15 @@ class Sqrt : IExpression
 
 static class Parser
 {
+    private struct EndTestResult(Nullable<Lexeme> lexeme, bool endOfStream) {
+        public Nullable<Lexeme> Lexeme {get;} = lexeme;
+        public bool EndOfStream {get;} = endOfStream;
+
+        public static EndTestResult Ye(Lexeme lexeme) => new EndTestResult(lexeme, false);
+        public static EndTestResult StreamEnd() => new EndTestResult(null, true);
+        public static EndTestResult Nah() => new EndTestResult(null, false);
+    }
+
     private static IExpression Merge(
         IExpression? left, IExpression right, string? op,
         Func<IExpression, IExpression, string?, IExpression> logic
@@ -151,30 +161,30 @@ static class Parser
         return tokens.Current.ID == LexemeID.IncPrecedence ?
             ParseRec(tokens, (tokens) => tokens.MoveNext() switch
             {
-                true => tokens.Current.ID == LexemeID.DecPrecedence ? null : tokens.Current,
-                false => null,
+                true => tokens.Current.ID == LexemeID.DecPrecedence ? EndTestResult.Nah() : EndTestResult.Ye(tokens.Current),
+                false => EndTestResult.StreamEnd(),
             }, depth + 1) : new Number(tokens.Current.token);
     }
 
-    private static IExpression ParseRec(IEnumerator<Lexeme> tokens, Func<IEnumerator<Lexeme>, Lexeme?> tryNext, uint depth)
+    private static IExpression ParseRec(IEnumerator<Lexeme> tokens, Func<IEnumerator<Lexeme>, EndTestResult> tryNext, uint depth)
     {
         (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
         string? oldAddOperator = null;
         string? oldMultOperator = null;
 
-        if (!tryNext(tokens).HasValue)
+        if (!tryNext(tokens).Lexeme.HasValue)
         {
             throw new NotImplementedException("TODO: Implement error for no expression passed");
         }
 
         right = MaybeRecurse(tokens, depth);
-        Lexeme? checkLexeme = null;
+        EndTestResult checkLexeme = EndTestResult.Nah(); // just initialize with *something* idfk
 
         // read two tokens at a time, first one should be an operator, second should be a number
-        while ((checkLexeme = tryNext(tokens)).HasValue)
+        while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
         {
             string operatorToken = tokens.Current.token;
-            if (!tryNext(tokens).HasValue)
+            if (!tryNext(tokens).Lexeme.HasValue)
             {
                 throw new NotImplementedException("TODO: Implement unbalanced expression error");
             }
@@ -208,7 +218,7 @@ static class Parser
             }
         }
 
-        if (depth > 0 && checkLexeme is null)
+        if (checkLexeme.EndOfStream && depth > 0)
         {
             throw new NotImplementedException("Unbalanced parentheses");
         }
@@ -236,8 +246,8 @@ static class Parser
         {
             return ParseRec(enumerator, (tokens) => tokens.MoveNext() switch
             {
-                true => tokens.Current,
-                false => null,
+                true => EndTestResult.Ye(tokens.Current),
+                false => EndTestResult.StreamEnd(),
             }, 0);
         }
     }
@@ -353,6 +363,27 @@ class Program
         }
     }
 
+    private static IEnumerable<Lexeme> Desugar(IEnumerable<Lexeme> tokens) {
+        // If we see opening or closing parenthesis, we need to splice in a * operator before/after
+        // the symbol if the symbol before/after ultamitely represents a number.
+
+        Lexeme? left = null;
+        foreach(Lexeme right in tokens) {
+            // check left parenthesis
+            if(right.ID is LexemeID.IncPrecedence && left is not null && left.Value.ID is LexemeID.Number) {
+                yield return Lexeme.Operator("*");
+            }
+
+            // check right parenthesis
+            if(left is not null && left.Value.ID is LexemeID.DecPrecedence && right.ID is LexemeID.Number) {
+                yield return Lexeme.Operator("*");
+            }
+
+            yield return right;
+            left = right;
+        }
+    }
+
     static void Main(string[] args)
     {
         bool printLexemes = false;
@@ -367,7 +398,7 @@ class Program
         Console.Error.Write("> ");
         while (Console.ReadLine() is string line)
         {
-            Lexeme[] lexemes = Lex(line).ToArray();
+            Lexeme[] lexemes = Desugar(Lex(line)).ToArray();
             if (printLexemes)
             {
                 foreach (Lexeme lexeme in lexemes)
