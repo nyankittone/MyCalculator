@@ -304,66 +304,77 @@ static class Lexer {
             _ => null,
         };
     }
+    
+    private static int PartialLex(string token, int index, List<Lexeme> outputList) {
+        outputList.Clear();
+
+        // TODO: Consider removing this while shuffling around some stuff in the while loop
+        // below. I think this part is redundant.
+        if (CheckNumber(token) is int length)
+        {
+            outputList.Add(Lexeme.Number(token[..length]));
+            index = length;
+        }
+
+        while (token[index..].Length > 0)
+        {
+            int oldStart = index;
+
+            if (CheckOperator(token[index..]) is int len2)
+            {
+                outputList.Add(Lexeme.Operator(token[index..(index + len2)]));
+                index += len2;
+            }
+
+            // Bro I just started using :Format for once. I fucking hate the C# convention of
+            // formatting
+            if (token[index..].Length > 0)
+            {
+                if (token[index] == '(')
+                {
+                    outputList.Add(Lexeme.IncPrecedence("("));
+                    index++;
+                }
+                else if (token[index] == ')')
+                {
+                    outputList.Add(Lexeme.DecPrecedence(")"));
+                    index++;
+                }
+
+                if (CheckNumber(token[index..]) is int len)
+                {
+                    outputList.Add(Lexeme.Number(token[index..(index + len)]));
+                    index += len;
+                }
+            }
+
+            if(oldStart == index) {
+                throw new NotImplementedException(
+                    "TODO: Find a reasonable way to recover from an invalid token. It doesn't seem too hard though."
+                );
+            }
+        }
+
+        return index;
+    }
 
     public static IEnumerable<Lexeme> Lex(string input)
     {
+        List<Lexeme> partialLexResult = new();
+
         foreach (string bigToken in String.Concat(input.Select((thing) => thing == '\t' ? ' ' : thing))
             .Split(" ", StringSplitOptions.RemoveEmptyEntries))
         {
             int startIndex = 0;
             bool wasCloseParenthesis = false;
 
-            // TODO: Consider removing this while shuffling around some stuff in the while loop
-            // below. I think this part is redundant.
-            if (CheckNumber(bigToken) is int length)
-            {
-                yield return Lexeme.Number(bigToken[..length]);
-                startIndex = length;
+            int newIndex = PartialLex(bigToken, startIndex, partialLexResult);
+
+            foreach(var lexeme in partialLexResult) {
+                yield return lexeme;
             }
 
-            while (bigToken[startIndex..].Length > 0)
-            {
-                int oldStart = startIndex;
-
-                if (CheckOperator(bigToken[startIndex..]) is int len2)
-                {
-                    yield return Lexeme.Operator(bigToken[startIndex..(startIndex + len2)]);
-                    startIndex += len2;
-                    wasCloseParenthesis = false;
-                }
-
-                // Bro I just started using :Format for once. I fucking hate the C# convention of
-                // formatting
-                if (bigToken[startIndex..].Length > 0)
-                {
-                    if (bigToken[startIndex] == '(')
-                    {
-                        yield return Lexeme.IncPrecedence("(");
-                        wasCloseParenthesis = false;
-                        startIndex++;
-                    }
-                    else if (bigToken[startIndex] == ')')
-                    {
-                        yield return Lexeme.DecPrecedence(")");
-                        wasCloseParenthesis = true;
-                        startIndex++;
-                    }
-
-                    if (CheckNumber(bigToken[startIndex..]) is int len)
-                    {
-                        yield return Lexeme.Number(bigToken[startIndex..(startIndex + len)]);
-                        wasCloseParenthesis = false;
-                        startIndex += len;
-                    }
-                }
-
-                if (oldStart == startIndex)
-                {
-                    throw new NotImplementedException(
-                        "TODO: Find a reasonable way to recover from an invalid token."
-                    );
-                }
-            }
+            startIndex = newIndex;
         }
     }
 }
