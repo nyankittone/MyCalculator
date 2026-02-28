@@ -2,6 +2,7 @@
 // TODO: Add error handling in the tokenizer and parser.
 // TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc.
 // TODO: Add support for defining custom functions.
+// TODO: Use arbitrary-precision numbers instead of the built-in `decimal` type.
 
 using System;
 using System.Collections.Generic;
@@ -388,7 +389,7 @@ static class Lexer
 
 class Program
 {
-
+    // TODO: Clean up this function's code a little.
     private static IEnumerable<Lexeme> Desugar(IEnumerable<Lexeme> tokens)
     {
         // If we see opening or closing parenthesis, we need to splice in a * operator before/after
