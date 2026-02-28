@@ -305,57 +305,45 @@ static class Lexer {
         };
     }
     
-    private static int PartialLex(string token, int index, List<Lexeme> outputList) {
+    private static (int, bool) PartialLex(string token, int index, bool wasCloseParenth, List<Lexeme> outputList) {
         outputList.Clear();
 
-        // TODO: Consider removing this while shuffling around some stuff in the while loop
-        // below. I think this part is redundant.
-        if (CheckNumber(token) is int length)
-        {
-            outputList.Add(Lexeme.Number(token[..length]));
-            index = length;
-        }
-
-        while (token[index..].Length > 0)
-        {
-            int oldStart = index;
-
-            if (CheckOperator(token[index..]) is int len2)
-            {
-                outputList.Add(Lexeme.Operator(token[index..(index + len2)]));
-                index += len2;
-            }
-
-            // Bro I just started using :Format for once. I fucking hate the C# convention of
-            // formatting
-            if (token[index..].Length > 0)
-            {
-                if (token[index] == '(')
-                {
-                    outputList.Add(Lexeme.IncPrecedence("("));
-                    index++;
-                }
-                else if (token[index] == ')')
-                {
-                    outputList.Add(Lexeme.DecPrecedence(")"));
-                    index++;
-                }
-
-                if (CheckNumber(token[index..]) is int len)
-                {
-                    outputList.Add(Lexeme.Number(token[index..(index + len)]));
-                    index += len;
-                }
-            }
-
-            if(oldStart == index) {
-                throw new NotImplementedException(
-                    "TODO: Find a reasonable way to recover from an invalid token. It doesn't seem too hard though."
-                );
+        if(wasCloseParenth) {
+            if(CheckOperator(token[index..]) is int lenny) {
+                outputList.Add(Lexeme.Operator(token[index..(index + lenny)]));
+                index += lenny;
             }
         }
 
-        return index;
+        if (CheckOperator(token[index..]) is int len2)
+        {
+            outputList.Add(Lexeme.Operator(token[index..(index + len2)]));
+            index += len2;
+        }
+
+        // Bro I just started using :Format for once. I fucking hate the C# convention of
+        // formatting
+        if (token[index..].Length > 0)
+        {
+            if (token[index] == '(')
+            {
+                outputList.Add(Lexeme.IncPrecedence("("));
+                index++;
+            }
+            else if (token[index] == ')')
+            {
+                outputList.Add(Lexeme.DecPrecedence(")"));
+                return (index + 1, true);
+            }
+
+            if (CheckNumber(token[index..]) is int len)
+            {
+                outputList.Add(Lexeme.Number(token[index..(index + len)]));
+                index += len;
+            }
+        }
+
+        return (index, false);
     }
 
     public static IEnumerable<Lexeme> Lex(string input)
@@ -366,15 +354,26 @@ static class Lexer {
             .Split(" ", StringSplitOptions.RemoveEmptyEntries))
         {
             int startIndex = 0;
-            bool wasCloseParenthesis = false;
+            bool wasCloseParenth = false;
 
-            int newIndex = PartialLex(bigToken, startIndex, partialLexResult);
+            while(bigToken[startIndex..].Length > 0) {
+                (var retIndex, var retCloseParenth) = PartialLex (
+                    bigToken, startIndex, wasCloseParenth, partialLexResult
+                );
 
-            foreach(var lexeme in partialLexResult) {
-                yield return lexeme;
+                startIndex = retIndex;
+                wasCloseParenth = retCloseParenth;
+
+                if(partialLexResult.Count == 0) {
+                    throw new NotImplementedException(
+                        "TODO: Find a reasonable way to recover from an invalid token. It doesn't seem too hard though."
+                    );
+                }
+
+                foreach(var lexeme in partialLexResult) {
+                    yield return lexeme;
+                }
             }
-
-            startIndex = newIndex;
         }
     }
 }
@@ -417,7 +416,7 @@ class Program
         Console.Error.Write("> ");
         while (Console.ReadLine() is string line)
         {
-            Lexeme[] lexemes = Lexer.Lex(line).ToArray();
+            Lexeme[] lexemes = Desugar(Lexer.Lex(line)).ToArray();
             if (printLexemes)
             {
                 foreach (Lexeme lexeme in lexemes)
