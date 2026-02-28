@@ -1,4 +1,4 @@
-﻿// TODO: Add sugaring to the tokenizer.
+﻿// TODO: Add testing.
 // TODO: Add error handling in the tokenizer and parser.
 // TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc.
 // TODO: Add support for defining custom functions.
@@ -253,65 +253,65 @@ static class Parser
     }
 }
 
-class Program
-{
-    private static IEnumerable<Lexeme> Lex(string input)
+static class Lexer {
+    private static Nullable<int> CheckNumber(string input)
     {
-        Nullable<int> CheckNumber(string input)
+        if (input.Length == 0)
         {
-            if (input.Length == 0)
-            {
-                return null;
-            }
+            return null;
+        }
 
-            int returned = 0;
-            if (input[0] == '+' || input[0] == '-')
-            {
-                returned++;
-            }
-
-            RE.Match leftMatch = RE.Regex.Match(input[returned..], @"^\d+");
-            if (leftMatch.Success)
-            {
-                returned += leftMatch.Length;
-            }
-
-            if (input[returned..].Length == 0 || input[returned] != '.')
-            {
-                return leftMatch.Success ? returned : null;
-            }
-
+        int returned = 0;
+        if (input[0] == '+' || input[0] == '-')
+        {
             returned++;
+        }
 
-            RE.Match rightMatch = RE.Regex.Match(input[returned..], @"^\d+");
-            if (rightMatch.Success)
-            {
-                returned += rightMatch.Length;
-                return returned;
-            }
+        RE.Match leftMatch = RE.Regex.Match(input[returned..], @"^\d+");
+        if (leftMatch.Success)
+        {
+            returned += leftMatch.Length;
+        }
 
+        if (input[returned..].Length == 0 || input[returned] != '.')
+        {
             return leftMatch.Success ? returned : null;
         }
 
-        Nullable<int> CheckOperator(string input)
-        {
-            if (input.Length == 0)
-            {
-                return null;
-            }
+        returned++;
 
-            return input[0] switch
-            {
-                '+' or '-' or '/' => 1,
-                '*' => input.Length > 1 && input[1] == '*' ? 2 : 1,
-                _ => null,
-            };
+        RE.Match rightMatch = RE.Regex.Match(input[returned..], @"^\d+");
+        if (rightMatch.Success)
+        {
+            returned += rightMatch.Length;
+            return returned;
         }
 
+        return leftMatch.Success ? returned : null;
+    }
+
+    private static Nullable<int> CheckOperator(string input)
+    {
+        if (input.Length == 0)
+        {
+            return null;
+        }
+
+        return input[0] switch
+        {
+            '+' or '-' or '/' => 1,
+            '*' => input.Length > 1 && input[1] == '*' ? 2 : 1,
+            _ => null,
+        };
+    }
+
+    public static IEnumerable<Lexeme> Lex(string input)
+    {
         foreach (string bigToken in String.Concat(input.Select((thing) => thing == '\t' ? ' ' : thing))
             .Split(" ", StringSplitOptions.RemoveEmptyEntries))
         {
             int startIndex = 0;
+            bool wasCloseParenthesis = false;
 
             // TODO: Consider removing this while shuffling around some stuff in the while loop
             // below. I think this part is redundant.
@@ -329,6 +329,7 @@ class Program
                 {
                     yield return Lexeme.Operator(bigToken[startIndex..(startIndex + len2)]);
                     startIndex += len2;
+                    wasCloseParenthesis = false;
                 }
 
                 // Bro I just started using :Format for once. I fucking hate the C# convention of
@@ -338,17 +339,20 @@ class Program
                     if (bigToken[startIndex] == '(')
                     {
                         yield return Lexeme.IncPrecedence("(");
+                        wasCloseParenthesis = false;
                         startIndex++;
                     }
                     else if (bigToken[startIndex] == ')')
                     {
                         yield return Lexeme.DecPrecedence(")");
+                        wasCloseParenthesis = true;
                         startIndex++;
                     }
 
                     if (CheckNumber(bigToken[startIndex..]) is int len)
                     {
                         yield return Lexeme.Number(bigToken[startIndex..(startIndex + len)]);
+                        wasCloseParenthesis = false;
                         startIndex += len;
                     }
                 }
@@ -362,6 +366,10 @@ class Program
             }
         }
     }
+}
+
+class Program
+{
 
     private static IEnumerable<Lexeme> Desugar(IEnumerable<Lexeme> tokens) {
         // If we see opening or closing parenthesis, we need to splice in a * operator before/after
@@ -398,7 +406,7 @@ class Program
         Console.Error.Write("> ");
         while (Console.ReadLine() is string line)
         {
-            Lexeme[] lexemes = Desugar(Lex(line)).ToArray();
+            Lexeme[] lexemes = Lexer.Lex(line).ToArray();
             if (printLexemes)
             {
                 foreach (Lexeme lexeme in lexemes)
