@@ -122,9 +122,10 @@ class Sqrt : IExpression
 
 static class Parser
 {
-    private struct EndTestResult(Nullable<Lexeme> lexeme, bool endOfStream) {
-        public Nullable<Lexeme> Lexeme {get;} = lexeme;
-        public bool EndOfStream {get;} = endOfStream;
+    private struct EndTestResult(Nullable<Lexeme> lexeme, bool endOfStream)
+    {
+        public Nullable<Lexeme> Lexeme { get; } = lexeme;
+        public bool EndOfStream { get; } = endOfStream;
 
         public static EndTestResult Ye(Lexeme lexeme) => new EndTestResult(lexeme, false);
         public static EndTestResult StreamEnd() => new EndTestResult(null, true);
@@ -253,7 +254,8 @@ static class Parser
     }
 }
 
-static class Lexer {
+static class Lexer
+{
     private static Nullable<int> CheckNumber(string input)
     {
         if (input.Length == 0)
@@ -304,12 +306,15 @@ static class Lexer {
             _ => null,
         };
     }
-    
-    private static (int, bool) PartialLex(string token, int index, bool wasCloseParenth, List<Lexeme> outputList) {
+
+    private static (int, bool) PartialLex(string token, int index, bool wasCloseParenth, List<Lexeme> outputList)
+    {
         outputList.Clear();
 
-        if(wasCloseParenth) {
-            if(CheckOperator(token[index..]) is int lenny) {
+        if (wasCloseParenth)
+        {
+            if (CheckOperator(token[index..]) is int lenny)
+            {
                 outputList.Add(Lexeme.Operator(token[index..(index + lenny)]));
                 index += lenny;
             }
@@ -356,21 +361,24 @@ static class Lexer {
             int startIndex = 0;
             bool wasCloseParenth = false;
 
-            while(bigToken[startIndex..].Length > 0) {
-                (var retIndex, var retCloseParenth) = PartialLex (
+            while (bigToken[startIndex..].Length > 0)
+            {
+                (var retIndex, var retCloseParenth) = PartialLex(
                     bigToken, startIndex, wasCloseParenth, partialLexResult
                 );
 
                 startIndex = retIndex;
                 wasCloseParenth = retCloseParenth;
 
-                if(partialLexResult.Count == 0) {
+                if (partialLexResult.Count == 0)
+                {
                     throw new NotImplementedException(
                         "TODO: Find a reasonable way to recover from an invalid token. It doesn't seem too hard though."
                     );
                 }
 
-                foreach(var lexeme in partialLexResult) {
+                foreach (var lexeme in partialLexResult)
+                {
                     yield return lexeme;
                 }
             }
@@ -381,19 +389,23 @@ static class Lexer {
 class Program
 {
 
-    private static IEnumerable<Lexeme> Desugar(IEnumerable<Lexeme> tokens) {
+    private static IEnumerable<Lexeme> Desugar(IEnumerable<Lexeme> tokens)
+    {
         // If we see opening or closing parenthesis, we need to splice in a * operator before/after
         // the symbol if the symbol before/after ultamitely represents a number.
 
         Lexeme? left = null;
-        foreach(Lexeme right in tokens) {
+        foreach (Lexeme right in tokens)
+        {
             // check left parenthesis
-            if(right.ID is LexemeID.IncPrecedence && left is not null && left.Value.ID is LexemeID.Number) {
+            if (right.ID is LexemeID.IncPrecedence && left is not null && left.Value.ID is LexemeID.Number)
+            {
                 yield return Lexeme.Operator("*");
             }
 
             // check right parenthesis
-            if(left is not null && left.Value.ID is LexemeID.DecPrecedence && right.ID is LexemeID.Number) {
+            if (left is not null && left.Value.ID is LexemeID.DecPrecedence && right.ID is (LexemeID.Number or LexemeID.IncPrecedence))
+            {
                 yield return Lexeme.Operator("*");
             }
 
