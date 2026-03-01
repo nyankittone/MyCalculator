@@ -1074,6 +1074,16 @@
             "related": ".xml"
           }
         }
+      },
+      "Calculator/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/Calculator.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Calculator.dll": {}
+        }
       }
     }
   },
@@ -2267,10 +2277,16 @@
         "newtonsoft.json.nuspec",
         "packageIcon.png"
       ]
+    },
+    "Calculator/1.0.0": {
+      "type": "project",
+      "path": "../Calculator/Calculator.csproj",
+      "msbuildProject": "../Calculator/Calculator.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "Calculator >= 1.0.0",
       "MSTest >= 4.0.1"
     ]
   },
@@ -2298,7 +2314,11 @@
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "/home/tiffany/Programming/Calculator/Calculator/Calculator.csproj": {
+              "projectPath": "/home/tiffany/Programming/Calculator/Calculator/Calculator.csproj"
+            }
+          }
         }
       },
       "warningProperties": {

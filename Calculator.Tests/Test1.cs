@@ -4,7 +4,8 @@
 public sealed class Test1
 {
     [TestMethod]
-    public void TestMethod1()
+    public void TwoPlusTwo()
     {
+        Assert.AreEqual(2, 2);
     }
 }
