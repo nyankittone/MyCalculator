@@ -8,6 +8,8 @@ public sealed class LexerTests
     private Lexeme Mult = Lexeme.Operator("*");
     private Lexeme Div = Lexeme.Operator("/");
     private Lexeme Exp = Lexeme.Operator("**");
+    private Lexeme Open = Lexeme.IncPrecedence("(");
+    private Lexeme Close = Lexeme.DecPrecedence(")");
 
     private void AssertArraysEqual<T>(T[] result, T[] expected) {
         Assert.HasCount(expected.Length, result);
@@ -108,5 +110,43 @@ public sealed class LexerTests
     public void LongBar() {
         var result = Lexer.Lex("8------------3").ToArray();
         AssertArraysEqual(result, [Lexeme.Number("8"), Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Lexeme.Number("-3")]);
+    }
+
+    [TestMethod]
+    public void Stars() {
+        var result = Lexer.Lex("***********").ToArray();
+        AssertArraysEqual(result, [Exp, Exp, Exp, Exp, Exp, Mult]);
+    }
+
+    [TestMethod]
+    public void ParenthesisSpam() {
+        var result = Lexer.Lex("89(((-7)(+6))))(-4-4(()+67()-69").ToArray();
+        AssertArraysEqual(result, [
+            Lexeme.Number("89"),
+            Open,
+            Open,
+            Open,
+            Lexeme.Number("-7"),
+            Close,
+            Open,
+            Lexeme.Number("+6"),
+            Close,
+            Close,
+            Close,
+            Close,
+            Open,
+            Lexeme.Number("-4"),
+            Sub,
+            Lexeme.Number("4"),
+            Open,
+            Open,
+            Close,
+            Add,
+            Lexeme.Number("67"),
+            Open,
+            Close,
+            Sub,
+            Lexeme.Number("69"),
+        ]);
     }
 }
