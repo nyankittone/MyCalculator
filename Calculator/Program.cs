@@ -18,6 +18,8 @@ public enum LexemeID
     Subtract,
     Multiply,
     Divide,
+    Exponent,
+    SquareRoot,
     IncPrecedence,
     DecPrecedence,
     Func,
@@ -49,12 +51,14 @@ public struct Lexeme
 // don't feel like being smart right now.
 public interface IExpression
 {
+    public LexemeID ID {get;}
     public decimal Evaluate();
     public IEnumerable<IExpression> Children();
 }
 
 public class Number : IExpression
 {
+    public LexemeID ID {get;} = LexemeID.Number;
     private decimal number;
     public Number(string token)
     {
@@ -69,6 +73,7 @@ public class Number : IExpression
 
 public abstract class Operator : IExpression
 {
+    public abstract LexemeID ID {get;}
     protected IExpression left;
     protected IExpression right;
 
@@ -89,36 +94,42 @@ public abstract class Operator : IExpression
 // That's a little annoying.
 public class Add : Operator
 {
+    public override LexemeID ID {get;} = LexemeID.Add;
     public Add(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() + right.Evaluate();
 }
 
 public class Subtract : Operator
 {
+    public override LexemeID ID {get;} = LexemeID.Subtract;
     public Subtract(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() - right.Evaluate();
 }
 
 public class Multiply : Operator
 {
+    public override LexemeID ID {get;} = LexemeID.Multiply;
     public Multiply(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() * right.Evaluate();
 }
 
 public class Divide : Operator
 {
+    public override LexemeID ID {get;} = LexemeID.Divide;
     public Divide(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() / right.Evaluate();
 }
 
 public class Exponent : Operator
 {
+    public override LexemeID ID {get;} = LexemeID.Exponent;
     public Exponent(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => (decimal)Math.Pow((double)left.Evaluate(), (double)right.Evaluate());
 }
 
 public class Sqrt : IExpression
 {
+    public LexemeID ID {get;} = LexemeID.SquareRoot;
     private IExpression unsquared;
     public Sqrt(IExpression expr)
     {
