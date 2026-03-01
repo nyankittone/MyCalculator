@@ -1,7 +1,8 @@
 ﻿namespace Calculator.Tests;
 
 // Handing off L's to this whole codebase
-static class L {
+static class L
+{
     public static Lexeme Add = Lexeme.Operator("+");
     public static Lexeme Sub = Lexeme.Operator("-");
     public static Lexeme Mult = Lexeme.Operator("*");
@@ -12,33 +13,93 @@ static class L {
 }
 
 [TestClass]
-public sealed class ParserTests {
+public sealed class ParserTests
+{
+    private void AssertSimpleTree (
+        IExpression expr, decimal expectedLeft, LexemeID expectedOperator, decimal expectedRight
+    ) {
+        Assert.AreEqual(expectedOperator, expr.ID);
+        IExpression[] children = expr.Children().ToArray();
+        Assert.HasCount(2, children);
+
+        Assert.AreEqual(LexemeID.Number, children[0].ID);
+        Assert.AreEqual(expectedLeft, children[0].Evaluate());
+        Assert.AreEqual(LexemeID.Number, children[1].ID);
+        Assert.AreEqual(expectedRight, children[1].Evaluate());
+    }
+
     // We are getting the internal details of each tree with a few methods and properties defined 
     // on IExpression for getting the lexeme ID and the direct children of the node. This works for
-    // our use case of checking the structure of each AST popped out of Parser.Parse, but it's also
+    // our use case of checking the structure of each AST popped out of Parser.Parse(), but it's also
     // fairly limited with its abilities. Reflection is something I will need to look at in the
     // future; it looks like a really powerful way to examine the resulting tree without having to
     // pollute the tree node type with a bunch of crap just for the sake of testing.
     [TestMethod]
-    public void SixSeven() {
-        Lexeme[] input = {Lexeme.Number("67")};
+    public void SixSeven()
+    {
+        Lexeme[] input = { Lexeme.Number("67") };
         IExpression result = Parser.Parse(input);
         Assert.AreEqual(LexemeID.Number, result.ID);
         Assert.AreEqual(67, result.Evaluate());
     }
 
-    // Is testing the exact structure of the tree what I'm supposed to do here? I realize suddently
-    // that the tree's exact stucture is an implementation detail. It doesn't matter what the
-    // structure looks like as long as the tree resolves to the correct answer when I call
-    // .Evaluate() on it. Maybe I should test the raw result of .Evaluate() instead?
     [TestMethod]
-    public void TwoPlusTwo() {
+    public void TwoPlusTwo()
+    {
         IExpression result = Parser.Parse([Lexeme.Number("2"), L.Add, Lexeme.Number("2")]);
+        AssertSimpleTree(result, 2, LexemeID.Add, 2);
+    }
+
+    [TestMethod]
+    public void TwoMinusTwo()
+    {
+        IExpression result = Parser.Parse([Lexeme.Number("2"), L.Sub, Lexeme.Number("2")]);
+        AssertSimpleTree(result, 2, LexemeID.Subtract, 2);
+    }
+
+    [TestMethod]
+    public void TwoTimesTwo()
+    {
+        IExpression result = Parser.Parse([Lexeme.Number("2"), L.Mult, Lexeme.Number("2")]);
+        AssertSimpleTree(result, 2, LexemeID.Multiply, 2);
+    }
+
+    [TestMethod]
+    public void TwoDividedByTwo()
+    {
+        IExpression result = Parser.Parse([Lexeme.Number("2"), L.Div, Lexeme.Number("2")]);
+        AssertSimpleTree(result, 2, LexemeID.Divide, 2);
+    }
+
+    [TestMethod]
+    public void TwoToTheFifthPower()
+    {
+        IExpression result = Parser.Parse([Lexeme.Number("2"), L.Exp, Lexeme.Number("5")]);
+        AssertSimpleTree(result, 2, LexemeID.Exponent, 5);
+    }
+
+    [TestMethod]
+    public void AddAndMult()
+    {
+        IExpression result = Parser.Parse([Lexeme.Number("5"), L.Add, Lexeme.Number("5"), L.Mult, Lexeme.Number("2")]);
         Assert.AreEqual(LexemeID.Add, result.ID);
+
         IExpression[] children = result.Children().ToArray();
         Assert.HasCount(2, children);
         Assert.AreEqual(LexemeID.Number, children[0].ID);
-        Assert.AreEqual(2, children[0].Evaluate());
+        Assert.AreEqual(5, children[0].Evaluate());
+        AssertSimpleTree(children[1], 5, LexemeID.Multiply, 2);
+    }
+
+    [TestMethod]
+    public void ReorderedAddAndMult() {
+        IExpression result = Parser.Parse([L.Open, Lexeme.Number("5"), L.Add, Lexeme.Number("5"), L.Close, L.Mult, Lexeme.Number("2")]);
+        Assert.AreEqual(LexemeID.Multiply, result.ID);
+
+        IExpression[] children = result.Children().ToArray();
+        Assert.HasCount(2, children);
+
+        AssertSimpleTree(children[0], 5, LexemeID.Add, 5);
         Assert.AreEqual(LexemeID.Number, children[1].ID);
         Assert.AreEqual(2, children[1].Evaluate());
     }
@@ -47,14 +108,17 @@ public sealed class ParserTests {
 [TestClass]
 public sealed class LexerTests
 {
-    private void AssertArraysEqual<T>(T[] result, T[] expected) {
+    private void AssertArraysEqual<T>(T[] result, T[] expected)
+    {
         Assert.HasCount(expected.Length, result);
-        for(int i = 0; i < result.Length; i++) {
+        for (int i = 0; i < result.Length; i++)
+        {
             Assert.AreEqual(result[i], expected[i]);
         }
     }
 
-    private void DidItTwoPlusTwo(Lexeme[] testOn) {
+    private void DidItTwoPlusTwo(Lexeme[] testOn)
+    {
         AssertArraysEqual(testOn, [Lexeme.Number("2"), L.Add, Lexeme.Number("2")]);
     }
 
@@ -66,55 +130,64 @@ public sealed class LexerTests
     }
 
     [TestMethod]
-    public void TwoPlusTwoCompressed() {
+    public void TwoPlusTwoCompressed()
+    {
         var result = Lexer.Lex("2+2").ToArray();
         DidItTwoPlusTwo(result);
     }
 
     [TestMethod]
-    public void TwoPlusTwoWhitespace() {
+    public void TwoPlusTwoWhitespace()
+    {
         var result = Lexer.Lex("    2     + 2       ").ToArray();
         DidItTwoPlusTwo(result);
     }
 
     [TestMethod]
-    public void TwoPlusTwoTabs() {
+    public void TwoPlusTwoTabs()
+    {
         var result = Lexer.Lex("\t2\t+\t2\t").ToArray();
         DidItTwoPlusTwo(result);
     }
 
     [TestMethod]
-    public void TwoPlusPositiveTwo() {
+    public void TwoPlusPositiveTwo()
+    {
         var result = Lexer.Lex("2++2").ToArray();
         AssertArraysEqual(result, [Lexeme.Number("2"), L.Add, Lexeme.Number("+2")]);
     }
 
     [TestMethod]
-    public void BrokenTwoPlusPositiveTwo() {
+    public void BrokenTwoPlusPositiveTwo()
+    {
         var result = Lexer.Lex("2 ++ 2").ToArray();
         AssertArraysEqual(result, [Lexeme.Number("2"), L.Add, L.Add, Lexeme.Number("2")]);
     }
 
     [TestMethod]
-    public void SubtractThing() {
+    public void SubtractThing()
+    {
         var result = Lexer.Lex("69-420").ToArray();
         AssertArraysEqual(result, [Lexeme.Number("69"), L.Sub, Lexeme.Number("420")]);
     }
 
     [TestMethod]
-    public void DoubleSubtractThing() {
+    public void DoubleSubtractThing()
+    {
         var result = Lexer.Lex("69--420").ToArray();
         AssertArraysEqual(result, [Lexeme.Number("69"), L.Sub, Lexeme.Number("-420")]);
     }
 
     [TestMethod]
-    public void BrokenDoubleSubtractThing() {
+    public void BrokenDoubleSubtractThing()
+    {
         var result = Lexer.Lex("69 -- 420").ToArray();
         AssertArraysEqual(result, [Lexeme.Number("69"), L.Sub, L.Sub, Lexeme.Number("420")]);
     }
 
     [TestMethod]
-    public void OperatorSpam() {
+    public void OperatorSpam()
+    {
         var result = Lexer.Lex("+*-///---+-+-/*+**-/+").ToArray();
         Lexeme[] expected = {
             L.Add,
@@ -143,7 +216,8 @@ public sealed class LexerTests
     }
 
     [TestMethod]
-    public void LongBar() {
+    public void LongBar()
+    {
         var result = Lexer.Lex("8------------3").ToArray();
         AssertArraysEqual(result, [
             Lexeme.Number("8"),
@@ -163,13 +237,15 @@ public sealed class LexerTests
     }
 
     [TestMethod]
-    public void Stars() {
+    public void Stars()
+    {
         var result = Lexer.Lex("***********").ToArray();
         AssertArraysEqual(result, [L.Exp, L.Exp, L.Exp, L.Exp, L.Exp, L.Mult]);
     }
 
     [TestMethod]
-    public void ParenthesisSpam() {
+    public void ParenthesisSpam()
+    {
         var result = Lexer.Lex("89(((-7)(+6))))(-4-4(()+67()-69").ToArray();
         AssertArraysEqual(result, [
             Lexeme.Number("89"),
