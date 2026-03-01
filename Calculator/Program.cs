@@ -50,6 +50,7 @@ public struct Lexeme
 public interface IExpression
 {
     public decimal Evaluate();
+    public IEnumerable<IExpression> Children();
 }
 
 public class Number : IExpression
@@ -61,6 +62,9 @@ public class Number : IExpression
     }
 
     public decimal Evaluate() => number;
+    public IEnumerable<IExpression> Children() {
+        yield break;
+    }
 }
 
 public abstract class Operator : IExpression
@@ -75,6 +79,10 @@ public abstract class Operator : IExpression
     }
 
     public abstract decimal Evaluate();
+    public IEnumerable<IExpression> Children() {
+        yield return left;
+        yield return right;
+    }
 }
 
 // I reeeeeally wish I didn't have to explicitly mention the constructor in every derived class.
@@ -119,6 +127,9 @@ public class Sqrt : IExpression
 
     // grrrrrr I hate these casts
     public decimal Evaluate() => (decimal)Math.Sqrt((double)unsquared.Evaluate());
+    public IEnumerable<IExpression> Children() {
+        yield return unsquared;
+    }
 }
 
 public static class Parser
