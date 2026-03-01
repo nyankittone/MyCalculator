@@ -1,16 +1,35 @@
 ﻿namespace Calculator.Tests;
 
+// Handing off L's to this whole codebase
+static class L {
+    public static Lexeme Add = Lexeme.Operator("+");
+    public static Lexeme Sub = Lexeme.Operator("-");
+    public static Lexeme Mult = Lexeme.Operator("*");
+    public static Lexeme Div = Lexeme.Operator("/");
+    public static Lexeme Exp = Lexeme.Operator("**");
+    public static Lexeme Open = Lexeme.IncPrecedence("(");
+    public static Lexeme Close = Lexeme.DecPrecedence(")");
+}
+
+[TestClass]
+public sealed class ParserTests {
+    // what do I even need to test here?
+    // What trees are generated from certain lexeme sequences, of course!
+    // I must remember to also test cases where the parsing should fail.
+    // I will need to be able to examine the structure of the tree more deeply. This means either
+    // changing my IExpression data structure to make it so I can perform that examination, or abuse
+    // reflection. This is providing a good excuse for me to learn reflection, but for now I will
+    // do it the other way.
+    [TestMethod]
+    public void SixSeven() {
+        Lexeme[] input = {Lexeme.Number("67")};
+        Assert.AreEqual(new Number("67").Evaluate(), Parser.Parse(input).Evaluate());
+    }
+}
+
 [TestClass]
 public sealed class LexerTests
 {
-    private Lexeme Add = Lexeme.Operator("+");
-    private Lexeme Sub = Lexeme.Operator("-");
-    private Lexeme Mult = Lexeme.Operator("*");
-    private Lexeme Div = Lexeme.Operator("/");
-    private Lexeme Exp = Lexeme.Operator("**");
-    private Lexeme Open = Lexeme.IncPrecedence("(");
-    private Lexeme Close = Lexeme.DecPrecedence(")");
-
     private void AssertArraysEqual<T>(T[] result, T[] expected) {
         Assert.HasCount(expected.Length, result);
         for(int i = 0; i < result.Length; i++) {
@@ -19,7 +38,7 @@ public sealed class LexerTests
     }
 
     private void DidItTwoPlusTwo(Lexeme[] testOn) {
-        AssertArraysEqual(testOn, [Lexeme.Number("2"), Add, Lexeme.Number("2")]);
+        AssertArraysEqual(testOn, [Lexeme.Number("2"), L.Add, Lexeme.Number("2")]);
     }
 
     [TestMethod]
@@ -50,57 +69,57 @@ public sealed class LexerTests
     [TestMethod]
     public void TwoPlusPositiveTwo() {
         var result = Lexer.Lex("2++2").ToArray();
-        AssertArraysEqual(result, [Lexeme.Number("2"), Add, Lexeme.Number("+2")]);
+        AssertArraysEqual(result, [Lexeme.Number("2"), L.Add, Lexeme.Number("+2")]);
     }
 
     [TestMethod]
     public void BrokenTwoPlusPositiveTwo() {
         var result = Lexer.Lex("2 ++ 2").ToArray();
-        AssertArraysEqual(result, [Lexeme.Number("2"), Add, Add, Lexeme.Number("2")]);
+        AssertArraysEqual(result, [Lexeme.Number("2"), L.Add, L.Add, Lexeme.Number("2")]);
     }
 
     [TestMethod]
     public void SubtractThing() {
         var result = Lexer.Lex("69-420").ToArray();
-        AssertArraysEqual(result, [Lexeme.Number("69"), Sub, Lexeme.Number("420")]);
+        AssertArraysEqual(result, [Lexeme.Number("69"), L.Sub, Lexeme.Number("420")]);
     }
 
     [TestMethod]
     public void DoubleSubtractThing() {
         var result = Lexer.Lex("69--420").ToArray();
-        AssertArraysEqual(result, [Lexeme.Number("69"), Sub, Lexeme.Number("-420")]);
+        AssertArraysEqual(result, [Lexeme.Number("69"), L.Sub, Lexeme.Number("-420")]);
     }
 
     [TestMethod]
     public void BrokenDoubleSubtractThing() {
         var result = Lexer.Lex("69 -- 420").ToArray();
-        AssertArraysEqual(result, [Lexeme.Number("69"), Sub, Sub, Lexeme.Number("420")]);
+        AssertArraysEqual(result, [Lexeme.Number("69"), L.Sub, L.Sub, Lexeme.Number("420")]);
     }
 
     [TestMethod]
     public void OperatorSpam() {
         var result = Lexer.Lex("+*-///---+-+-/*+**-/+").ToArray();
         Lexeme[] expected = {
-            Add,
-            Mult,
-            Sub,
-            Div,
-            Div,
-            Div,
-            Sub,
-            Sub,
-            Sub,
-            Add,
-            Sub,
-            Add,
-            Sub,
-            Div,
-            Mult,
-            Add,
-            Exp,
-            Sub,
-            Div,
-            Add,
+            L.Add,
+            L.Mult,
+            L.Sub,
+            L.Div,
+            L.Div,
+            L.Div,
+            L.Sub,
+            L.Sub,
+            L.Sub,
+            L.Add,
+            L.Sub,
+            L.Add,
+            L.Sub,
+            L.Div,
+            L.Mult,
+            L.Add,
+            L.Exp,
+            L.Sub,
+            L.Div,
+            L.Add,
         };
 
         AssertArraysEqual(result, expected);
@@ -109,13 +128,27 @@ public sealed class LexerTests
     [TestMethod]
     public void LongBar() {
         var result = Lexer.Lex("8------------3").ToArray();
-        AssertArraysEqual(result, [Lexeme.Number("8"), Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Lexeme.Number("-3")]);
+        AssertArraysEqual(result, [
+            Lexeme.Number("8"),
+            L.Sub,
+            L.Sub,
+            L.Sub,
+            L.Sub,
+            L.Sub,
+            L.Sub,
+            L.Sub,
+            L.Sub,
+            L.Sub,
+            L.Sub,
+            L.Sub,
+            Lexeme.Number("-3"),
+        ]);
     }
 
     [TestMethod]
     public void Stars() {
         var result = Lexer.Lex("***********").ToArray();
-        AssertArraysEqual(result, [Exp, Exp, Exp, Exp, Exp, Mult]);
+        AssertArraysEqual(result, [L.Exp, L.Exp, L.Exp, L.Exp, L.Exp, L.Mult]);
     }
 
     [TestMethod]
@@ -123,29 +156,29 @@ public sealed class LexerTests
         var result = Lexer.Lex("89(((-7)(+6))))(-4-4(()+67()-69").ToArray();
         AssertArraysEqual(result, [
             Lexeme.Number("89"),
-            Open,
-            Open,
-            Open,
+            L.Open,
+            L.Open,
+            L.Open,
             Lexeme.Number("-7"),
-            Close,
-            Open,
+            L.Close,
+            L.Open,
             Lexeme.Number("+6"),
-            Close,
-            Close,
-            Close,
-            Close,
-            Open,
+            L.Close,
+            L.Close,
+            L.Close,
+            L.Close,
+            L.Open,
             Lexeme.Number("-4"),
-            Sub,
+            L.Sub,
             Lexeme.Number("4"),
-            Open,
-            Open,
-            Close,
-            Add,
+            L.Open,
+            L.Open,
+            L.Close,
+            L.Add,
             Lexeme.Number("67"),
-            Open,
-            Close,
-            Sub,
+            L.Open,
+            L.Close,
+            L.Sub,
             Lexeme.Number("69"),
         ]);
     }
