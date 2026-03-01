@@ -13,17 +13,34 @@ static class L {
 
 [TestClass]
 public sealed class ParserTests {
-    // what do I even need to test here?
-    // What trees are generated from certain lexeme sequences, of course!
-    // I must remember to also test cases where the parsing should fail.
-    // I will need to be able to examine the structure of the tree more deeply. This means either
-    // changing my IExpression data structure to make it so I can perform that examination, or abuse
-    // reflection. This is providing a good excuse for me to learn reflection, but for now I will
-    // do it the other way.
+    // We are getting the internal details of each tree with a few methods and properties defined 
+    // on IExpression for getting the lexeme ID and the direct children of the node. This works for
+    // our use case of checking the structure of each AST popped out of Parser.Parse, but it's also
+    // fairly limited with its abilities. Reflection is something I will need to look at in the
+    // future; it looks like a really powerful way to examine the resulting tree without having to
+    // pollute the tree node type with a bunch of crap just for the sake of testing.
     [TestMethod]
     public void SixSeven() {
         Lexeme[] input = {Lexeme.Number("67")};
-        Assert.AreEqual(new Number("67").Evaluate(), Parser.Parse(input).Evaluate());
+        IExpression result = Parser.Parse(input);
+        Assert.AreEqual(LexemeID.Number, result.ID);
+        Assert.AreEqual(67, result.Evaluate());
+    }
+
+    // Is testing the exact structure of the tree what I'm supposed to do here? I realize suddently
+    // that the tree's exact stucture is an implementation detail. It doesn't matter what the
+    // structure looks like as long as the tree resolves to the correct answer when I call
+    // .Evaluate() on it. Maybe I should test the raw result of .Evaluate() instead?
+    [TestMethod]
+    public void TwoPlusTwo() {
+        IExpression result = Parser.Parse([Lexeme.Number("2"), L.Add, Lexeme.Number("2")]);
+        Assert.AreEqual(LexemeID.Add, result.ID);
+        IExpression[] children = result.Children().ToArray();
+        Assert.HasCount(2, children);
+        Assert.AreEqual(LexemeID.Number, children[0].ID);
+        Assert.AreEqual(2, children[0].Evaluate());
+        Assert.AreEqual(LexemeID.Number, children[1].ID);
+        Assert.AreEqual(2, children[1].Evaluate());
     }
 }
 
