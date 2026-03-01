@@ -103,4 +103,10 @@ public sealed class LexerTests
 
         AssertArraysEqual(result, expected);
     }
+
+    [TestMethod]
+    public void LongBar() {
+        var result = Lexer.Lex("8------------3").ToArray();
+        AssertArraysEqual(result, [Lexeme.Number("8"), Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Sub, Lexeme.Number("-3")]);
+    }
 }
