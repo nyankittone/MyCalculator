@@ -10,7 +10,7 @@ using System.Linq;
 using RE = System.Text.RegularExpressions;
 namespace Calculator;
 
-enum LexemeID
+public enum LexemeID
 {
     Number,
     Operator,
@@ -23,7 +23,7 @@ enum LexemeID
     Func,
 }
 
-struct Lexeme
+public struct Lexeme
 {
     public LexemeID ID { get; }
     public string token { get; }
@@ -47,12 +47,12 @@ struct Lexeme
 
 // We're going to make the parser also take the role of the lexer, for convenience on my end bc I
 // don't feel like being smart right now.
-interface IExpression
+public interface IExpression
 {
     public decimal Evaluate();
 }
 
-class Number : IExpression
+public class Number : IExpression
 {
     private decimal number;
     public Number(string token)
@@ -63,7 +63,7 @@ class Number : IExpression
     public decimal Evaluate() => number;
 }
 
-abstract class Operator : IExpression
+public abstract class Operator : IExpression
 {
     protected IExpression left;
     protected IExpression right;
@@ -79,37 +79,37 @@ abstract class Operator : IExpression
 
 // I reeeeeally wish I didn't have to explicitly mention the constructor in every derived class.
 // That's a little annoying.
-class Add : Operator
+public class Add : Operator
 {
     public Add(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() + right.Evaluate();
 }
 
-class Subtract : Operator
+public class Subtract : Operator
 {
     public Subtract(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() - right.Evaluate();
 }
 
-class Multiply : Operator
+public class Multiply : Operator
 {
     public Multiply(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() * right.Evaluate();
 }
 
-class Divide : Operator
+public class Divide : Operator
 {
     public Divide(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() / right.Evaluate();
 }
 
-class Exponent : Operator
+public class Exponent : Operator
 {
     public Exponent(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => (decimal)Math.Pow((double)left.Evaluate(), (double)right.Evaluate());
 }
 
-class Sqrt : IExpression
+public class Sqrt : IExpression
 {
     private IExpression unsquared;
     public Sqrt(IExpression expr)
@@ -121,7 +121,7 @@ class Sqrt : IExpression
     public decimal Evaluate() => (decimal)Math.Sqrt((double)unsquared.Evaluate());
 }
 
-static class Parser
+public static class Parser
 {
     private struct EndTestResult(Nullable<Lexeme> lexeme, bool endOfStream)
     {
@@ -255,7 +255,7 @@ static class Parser
     }
 }
 
-static class Lexer
+public static class Lexer
 {
     private static Nullable<int> CheckNumber(string input)
     {

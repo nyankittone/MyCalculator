@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/tiffany/Programming/Calculator/Calculator.csproj",
+      "projectUniqueName": "/home/tiffany/Programming/Calculator/Calculator/Calculator.csproj",
       "projectName": "Calculator",
-      "projectPath": "/home/tiffany/Programming/Calculator/Calculator.csproj",
+      "projectPath": "/home/tiffany/Programming/Calculator/Calculator/Calculator.csproj",
       "packagesPath": "/home/tiffany/.nuget/packages/",
-      "outputPath": "/home/tiffany/Programming/Calculator/obj/",
+      "outputPath": "/home/tiffany/Programming/Calculator/Calculator/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/tiffany/.nuget/NuGet/NuGet.Config"
