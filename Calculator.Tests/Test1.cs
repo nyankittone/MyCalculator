@@ -103,6 +103,90 @@ public sealed class ParserTests
         Assert.AreEqual(LexemeID.Number, children[1].ID);
         Assert.AreEqual(2, children[1].Evaluate());
     }
+
+    // I'm not sure how useful this test is, but it's cool regardless.
+    [TestMethod]
+    public void ManyAdds() {
+        IExpression result = Parser.Parse([
+            Lexeme.Number("1"),
+            L.Add,
+            Lexeme.Number("2"),
+            L.Add,
+            Lexeme.Number("3"),
+            L.Add,
+            Lexeme.Number("4"),
+            L.Add,
+            Lexeme.Number("5"),
+            L.Add,
+            Lexeme.Number("6"),
+            L.Add,
+            Lexeme.Number("7"),
+            L.Add,
+            Lexeme.Number("8")]);
+
+        Assert.AreEqual(LexemeID.Add, result.ID);
+        IExpression node = result;
+        foreach(var expectedRight in new decimal[] {8, 7, 6, 5, 4, 3}) {
+            IExpression[] children = node.Children().ToArray();
+            Assert.HasCount(2, children);
+            Assert.AreEqual(LexemeID.Number, children[1].ID);
+            Assert.AreEqual(expectedRight, children[1].Evaluate());
+
+            node = children[0];
+        }
+
+        AssertSimpleTree(node, 1, LexemeID.Add, 2);
+    }
+
+    [TestMethod]
+    public void ExponentsHeckYeah() {
+        IExpression node = Parser.Parse([Lexeme.Number("12"), L.Sub, Lexeme.Number("3"), L.Mult, Lexeme.Number("3"), L.Exp, Lexeme.Number("2")]);
+
+        Assert.AreEqual(LexemeID.Subtract, node.ID);
+        {
+            IExpression[] children = node.Children().ToArray();
+            Assert.HasCount(2, children);
+            Assert.AreEqual(LexemeID.Number, children[0].ID);
+            Assert.AreEqual(12, children[0].Evaluate());
+            node = children[1];
+        }
+
+        Assert.AreEqual(LexemeID.Multiply, node.ID);
+        {
+            IExpression[] children = node.Children().ToArray();
+            Assert.HasCount(2, children);
+            Assert.AreEqual(LexemeID.Number, children[0].ID);
+            Assert.AreEqual(3, children[0].Evaluate());
+            node = children[1];
+        }
+
+        AssertSimpleTree(node, 3, LexemeID.Exponent, 2);
+    }
+
+    [TestMethod]
+    public void MultDivMult() {
+        IExpression node = Parser.Parse([Lexeme.Number("6"), L.Mult, Lexeme.Number("6"), L.Div, Lexeme.Number("6"), L.Mult, Lexeme.Number("6")]);
+
+        Assert.AreEqual(LexemeID.Multiply, node.ID);
+        {
+            IExpression[] children = node.Children().ToArray();
+            Assert.HasCount(2, children);
+            Assert.AreEqual(LexemeID.Number, children[1].ID);
+            Assert.AreEqual(6, children[1].Evaluate());
+            node = children[0];
+        }
+
+        Assert.AreEqual(LexemeID.Divide, node.ID);
+        {
+            IExpression[] children = node.Children().ToArray();
+            Assert.HasCount(2, children);
+            Assert.AreEqual(LexemeID.Number, children[1].ID);
+            Assert.AreEqual(6, children[1].Evaluate());
+            node = children[0];
+        }
+
+        AssertSimpleTree(node, 6, LexemeID.Multiply, 6);
+    }
 }
 
 [TestClass]
