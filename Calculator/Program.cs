@@ -13,7 +13,6 @@ namespace Calculator;
 public enum LexemeID
 {
     Number,
-    Operator,
     Add,
     Subtract,
     Multiply,
@@ -42,7 +41,21 @@ public struct Lexeme
     }
 
     public static Lexeme Number(string token) => new Lexeme(LexemeID.Number, token);
-    public static Lexeme Operator(string token) => new Lexeme(LexemeID.Operator, token);
+    public static Lexeme Add() => new Lexeme(LexemeID.Add, "+");
+    public static Lexeme Subtract() => new Lexeme(LexemeID.Subtract, "-");
+    public static Lexeme Multiply() => new Lexeme(LexemeID.Multiply, "*");
+    public static Lexeme Divide() => new Lexeme(LexemeID.Divide, "/");
+    public static Lexeme Exponent() => new Lexeme(LexemeID.Exponent, "**");
+
+    public static Lexeme Operator(string token) => token switch {
+        "+" => new Lexeme(LexemeID.Add, token),
+        "-" => new Lexeme(LexemeID.Subtract, token),
+        "*" => new Lexeme(LexemeID.Multiply, token),
+        "/" => new Lexeme(LexemeID.Divide, token),
+        "**" => new Lexeme(LexemeID.Exponent, token),
+        _ => throw new ArgumentException($"Invalid operator token {token}."),
+    };
+
     public static Lexeme IncPrecedence(string token) => new Lexeme(LexemeID.IncPrecedence, token);
     public static Lexeme DecPrecedence(string token) => new Lexeme(LexemeID.DecPrecedence, token);
 }
@@ -143,6 +156,8 @@ public class Sqrt : IExpression
     }
 }
 
+// TODO: Rewrite this code to look at operator lexemes based on the lexeme ID instead of the actual
+// token that they hold.
 public static class Parser
 {
     private struct EndTestResult(Nullable<Lexeme> lexeme, bool endOfStream)
@@ -215,7 +230,6 @@ public static class Parser
 
             IExpression operand = MaybeRecurse(tokens, depth);
 
-            // now what???
             switch (operatorToken)
             {
                 case "**":
