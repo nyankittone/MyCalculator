@@ -1,5 +1,4 @@
-﻿// TODO: Refactor the lexemes used
-// TODO: Add error handling in the tokenizer and parser.
+﻿// TODO: Add error handling in the tokenizer and parser.
 // TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc.
 // TODO: Add support for defining custom functions.
 // TODO: Use arbitrary-precision numbers instead of the built-in `decimal` type.
@@ -269,9 +268,6 @@ public static class Parser
             (_, null, _) => left,
             (_, _, LexemeID.Add) => new Add(left, mid),
             (_, _, LexemeID.Subtract) => new Subtract(left, mid),
-            // Don't think I need these last two lines. Could be wrong.
-            // (_, _, "*") => new Multiply(left, mid),
-            // (_, _, "/") => new Divide(left, mid),
             _ => throw new Exception("meow :3"),
         };
     }
@@ -345,7 +341,12 @@ public static class Lexer
         };
     }
 
-    private static (int, bool) PartialLex(string token, int index, bool wasCloseParenth, List<Lexeme> outputList)
+    private struct PartialLexResult(int index, bool wasCloseParenth) {
+        public int Index {get;} = index;
+        public bool WasCloseParenth {get;} = wasCloseParenth;
+    }
+
+    private static PartialLexResult PartialLex(string token, int index, bool wasCloseParenth, List<Lexeme> outputList)
     {
         outputList.Clear();
 
@@ -376,7 +377,7 @@ public static class Lexer
             else if (token[index] == ')')
             {
                 outputList.Add(Lexeme.DecPrecedence(")"));
-                return (index + 1, true);
+                return new PartialLexResult(index + 1, true);
             }
 
             if (CheckNumber(token[index..]) is int len)
@@ -386,7 +387,7 @@ public static class Lexer
             }
         }
 
-        return (index, false);
+        return new PartialLexResult(index, false);
     }
 
     public static IEnumerable<Lexeme> Lex(string input)
@@ -401,12 +402,12 @@ public static class Lexer
 
             while (bigToken[startIndex..].Length > 0)
             {
-                (var retIndex, var retCloseParenth) = PartialLex(
+                var result = PartialLex(
                     bigToken, startIndex, wasCloseParenth, partialLexResult
                 );
 
-                startIndex = retIndex;
-                wasCloseParenth = retCloseParenth;
+                startIndex = result.Index;
+                wasCloseParenth = result.WasCloseParenth;
 
                 if (partialLexResult.Count == 0)
                 {
