@@ -1,4 +1,4 @@
-﻿// TODO: Add testing.
+﻿// TODO: Refactor the lexemes used
 // TODO: Add error handling in the tokenizer and parser.
 // TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc.
 // TODO: Add support for defining custom functions.
