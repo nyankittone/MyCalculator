@@ -171,27 +171,27 @@ public static class Parser
     }
 
     private static IExpression Merge(
-        IExpression? left, IExpression right, string? op,
-        Func<IExpression, IExpression, string?, IExpression> logic
+        IExpression? left, IExpression right, LexemeID? op,
+        Func<IExpression, IExpression, LexemeID?, IExpression> logic
     ) => left switch
     {
         null => right,
         _ => logic(left, right, op),
     };
 
-    private static IExpression MergeMult(IExpression left, IExpression right, string? op) =>
+    private static IExpression MergeMult(IExpression left, IExpression right, LexemeID? op) =>
         op switch
         {
-            "*" => new Multiply(left, right),
-            "/" => new Divide(left, right),
+            LexemeID.Multiply => new Multiply(left, right),
+            LexemeID.Divide => new Divide(left, right),
             _ => throw new NotImplementedException("Not multiply or divide here"),
         };
 
-    private static IExpression MergeAdd(IExpression left, IExpression right, string? op) =>
+    private static IExpression MergeAdd(IExpression left, IExpression right, LexemeID? op) =>
         op switch
         {
-            "+" => new Add(left, right),
-            "-" => new Subtract(left, right),
+            LexemeID.Add => new Add(left, right),
+            LexemeID.Subtract => new Subtract(left, right),
             _ => throw new NotImplementedException("Not add or subtract here"),
         };
 
@@ -208,8 +208,8 @@ public static class Parser
     private static IExpression ParseRec(IEnumerator<Lexeme> tokens, Func<IEnumerator<Lexeme>, EndTestResult> tryNext, uint depth)
     {
         (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
-        string? oldAddOperator = null;
-        string? oldMultOperator = null;
+        LexemeID? oldAddOperator = null;
+        LexemeID? oldMultOperator = null;
 
         if (!tryNext(tokens).Lexeme.HasValue)
         {
@@ -222,7 +222,7 @@ public static class Parser
         // read two tokens at a time, first one should be an operator, second should be a number
         while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
         {
-            string operatorToken = tokens.Current.token;
+            LexemeID op = tokens.Current.ID;
             if (!tryNext(tokens).Lexeme.HasValue)
             {
                 throw new NotImplementedException("TODO: Implement unbalanced expression error");
@@ -230,24 +230,24 @@ public static class Parser
 
             IExpression operand = MaybeRecurse(tokens, depth);
 
-            switch (operatorToken)
+            switch (op)
             {
-                case "**":
+                case LexemeID.Exponent:
                     right = new Exponent(right, operand);
                     break;
-                case "*":
-                case "/":
+                case LexemeID.Multiply:
+                case LexemeID.Divide:
                     mid = Merge(mid, right, oldMultOperator, MergeMult);
-                    oldMultOperator = operatorToken;
+                    oldMultOperator = op;
                     right = operand;
                     break;
-                case "+":
-                case "-":
+                case LexemeID.Add:
+                case LexemeID.Subtract:
                     mid = Merge(mid, right, oldMultOperator, MergeMult);
                     right = operand;
                     oldMultOperator = null;
                     left = Merge(left, mid, oldAddOperator, MergeAdd);
-                    oldAddOperator = operatorToken;
+                    oldAddOperator = op;
                     // mid = new Number(operand);
                     mid = null;
                     break;
@@ -267,10 +267,11 @@ public static class Parser
             (null, null, _) => throw new Exception("All are null. How???"),
             (null, _, _) => mid,
             (_, null, _) => left,
-            (_, _, "+") => new Add(left, mid),
-            (_, _, "-") => new Subtract(left, mid),
-            (_, _, "*") => new Multiply(left, mid),
-            (_, _, "/") => new Divide(left, mid),
+            (_, _, LexemeID.Add) => new Add(left, mid),
+            (_, _, LexemeID.Subtract) => new Subtract(left, mid),
+            // Don't think I need these last two lines. Could be wrong.
+            // (_, _, "*") => new Multiply(left, mid),
+            // (_, _, "/") => new Divide(left, mid),
             _ => throw new Exception("meow :3"),
         };
     }
