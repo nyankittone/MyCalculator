@@ -26,39 +26,45 @@ public enum LexemeID
 
 public struct Lexeme
 {
-    public LexemeID ID { get; }
-    public string token { get; }
+    public LexemeID ID {get;}
+    public string token {get;}
+    public int? index {get;}
 
-    private Lexeme(LexemeID ID, string token)
+    private Lexeme(LexemeID ID, string token, int? index)
     {
         this.ID = ID;
         this.token = token;
+        this.index = index;
     }
 
     public override string ToString()
     {
-        return $"{ID}({token})";
+        return $"@{index + 1}: {ID}(\"{token}\")";
     }
 
-    public static Lexeme Number(string token) => new Lexeme(LexemeID.Number, token);
-    public static Lexeme Add() => new Lexeme(LexemeID.Add, "+");
-    public static Lexeme Subtract() => new Lexeme(LexemeID.Subtract, "-");
-    public static Lexeme Multiply() => new Lexeme(LexemeID.Multiply, "*");
-    public static Lexeme Divide() => new Lexeme(LexemeID.Divide, "/");
-    public static Lexeme Exponent() => new Lexeme(LexemeID.Exponent, "**");
+    public static Lexeme Number(string token, int? index) => new Lexeme(LexemeID.Number, token, index);
+    public static Lexeme Add(int? index) => new Lexeme(LexemeID.Add, "+", index);
+    public static Lexeme Subtract(int? index) => new Lexeme(LexemeID.Subtract, "-", index);
+    public static Lexeme Multiply(int? index) => new Lexeme(LexemeID.Multiply, "*", index);
+    public static Lexeme Divide(int? index) => new Lexeme(LexemeID.Divide, "/", index);
+    public static Lexeme Exponent(int? index) => new Lexeme(LexemeID.Exponent, "**", index);
 
-    public static Lexeme Operator(string token) => token switch {
-        "+" => new Lexeme(LexemeID.Add, token),
-        "-" => new Lexeme(LexemeID.Subtract, token),
-        "*" => new Lexeme(LexemeID.Multiply, token),
-        "/" => new Lexeme(LexemeID.Divide, token),
-        "**" => new Lexeme(LexemeID.Exponent, token),
-        _ => throw new ArgumentException($"Invalid operator token {token}."),
-    };
+    public static Lexeme Operator(string token, int? index) {
+        LexemeID id = token switch {
+            "+" => LexemeID.Add,
+            "-" => LexemeID.Subtract,
+            "*" => LexemeID.Multiply,
+            "/" => LexemeID.Divide,
+            "**" => LexemeID.Exponent,
+            _ => throw new ArgumentException($"Invalid operator token {token}."),
+        };
 
-    public static Lexeme IncPrecedence(string token) => new Lexeme(LexemeID.IncPrecedence, token);
-    public static Lexeme DecPrecedence(string token) => new Lexeme(LexemeID.DecPrecedence, token);
-    public static Lexeme Invalid(string token) => new Lexeme(LexemeID.Invalid, token);
+        return new Lexeme(id, token, index);
+    }
+
+    public static Lexeme IncPrecedence(string token, int? index) => new Lexeme(LexemeID.IncPrecedence, token, index);
+    public static Lexeme DecPrecedence(string token,int? index) => new Lexeme(LexemeID.DecPrecedence, token, index);
+    public static Lexeme Invalid(string token, int? index) => new Lexeme(LexemeID.Invalid, token, index);
 }
 
 // We're going to make the parser also take the role of the lexer, for convenience on my end bc I
@@ -350,7 +356,7 @@ public static class Lexer
                                                               // looked at was a closing parenthesis
     }
 
-    private static PartialLexResult PartialLex(string token, int index, bool wasCloseParenth, List<Lexeme> outputList)
+    private static PartialLexResult PartialLex(string token, int index, in int bigIndex, bool wasCloseParenth, List<Lexeme> outputList)
     {
         outputList.Clear();
 
@@ -358,14 +364,14 @@ public static class Lexer
         {
             if (CheckOperator(token[index..]) is int lenny)
             {
-                outputList.Add(Lexeme.Operator(token[index..(index + lenny)]));
+                outputList.Add(Lexeme.Operator(token[index..(index + lenny)], index + bigIndex));
                 index += lenny;
             }
         }
 
         if (CheckOperator(token[index..]) is int len2)
         {
-            outputList.Add(Lexeme.Operator(token[index..(index + len2)]));
+            outputList.Add(Lexeme.Operator(token[index..(index + len2)], index + bigIndex));
             index += len2;
         }
 
@@ -375,18 +381,18 @@ public static class Lexer
         {
             if (token[index] == '(')
             {
-                outputList.Add(Lexeme.IncPrecedence("("));
+                outputList.Add(Lexeme.IncPrecedence("(", index + bigIndex));
                 index++;
             }
             else if (token[index] == ')')
             {
-                outputList.Add(Lexeme.DecPrecedence(")"));
+                outputList.Add(Lexeme.DecPrecedence(")", index + bigIndex));
                 return new PartialLexResult(index + 1, true);
             }
 
             if (CheckNumber(token[index..]) is int len)
             {
-                outputList.Add(Lexeme.Number(token[index..(index + len)]));
+                outputList.Add(Lexeme.Number(token[index..(index + len)], index + bigIndex));
                 index += len;
             }
         }
@@ -394,11 +400,11 @@ public static class Lexer
         return new PartialLexResult(index, false);
     }
 
-    private static Lexeme? LexInvalid(string token, int index) {
+    private static Lexeme? LexInvalid(string token, int index, in int bigIndex) {
         var match = RE.Regex.Match(token[index..], @"^[^0-9\(\)\+\-\*\/]*"); // This may be like
                                                                              // slightly slow?
         return match.Success switch {
-            true => Lexeme.Invalid(match.Value),
+            true => Lexeme.Invalid(match.Value, index + bigIndex),
             false => null,
         };
     }
@@ -406,7 +412,10 @@ public static class Lexer
     public static IEnumerable<Lexeme> Lex(string input)
     {
         List<Lexeme> partialLexResult = new();
+        int bigIndex = 0;
 
+        // TODO: Iterate between whitespace while preserving info about where the whitespace is and
+        // how much of it is there, so we can get more accurate index numbers for each lexeme.
         foreach (string bigToken in String.Concat(input.Select((thing) => thing == '\t' ? ' ' : thing))
             .Split(" ", StringSplitOptions.RemoveEmptyEntries))
         {
@@ -416,7 +425,7 @@ public static class Lexer
             while (bigToken[startIndex..].Length > 0)
             {
                 var result = PartialLex(
-                    bigToken, startIndex, wasCloseParenth, partialLexResult
+                    bigToken, startIndex, bigIndex, wasCloseParenth, partialLexResult
                 );
 
                 startIndex = result.Index;
@@ -427,7 +436,7 @@ public static class Lexer
                     Console.Error.WriteLine("what?");
                     // Recover from an invalid token, by scanning forward until encountering a
                     // character for something valid.
-                    if(LexInvalid(bigToken, startIndex) is Lexeme lexeme) {
+                    if(LexInvalid(bigToken, startIndex, bigIndex) is Lexeme lexeme) {
                         yield return lexeme;
                         startIndex += lexeme.token.Length;
                     } else {
@@ -440,6 +449,8 @@ public static class Lexer
                     yield return lexeme;
                 }
             }
+
+            bigIndex += bigToken.Length + 1;
         }
     }
 }
@@ -458,13 +469,13 @@ class Program
             // check left parenthesis
             if (right.ID is LexemeID.IncPrecedence && left is not null && left.Value.ID is LexemeID.Number)
             {
-                yield return Lexeme.Operator("*");
+                yield return Lexeme.Operator("*", null);
             }
 
             // check right parenthesis
             if (left is not null && left.Value.ID is LexemeID.DecPrecedence && right.ID is (LexemeID.Number or LexemeID.IncPrecedence))
             {
-                yield return Lexeme.Operator("*");
+                yield return Lexeme.Operator("*", null);
             }
 
             yield return right;
