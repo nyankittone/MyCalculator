@@ -335,7 +335,7 @@ public static class Lexer
         return leftMatch.Success ? returned : null;
     }
 
-    private static Nullable<int> CheckOperator(string input)
+    private static int? CheckOperator(string input)
     {
         if (input.Length == 0)
         {
@@ -433,7 +433,6 @@ public static class Lexer
 
                 if (partialLexResult.Count == 0)
                 {
-                    Console.Error.WriteLine("what?");
                     // Recover from an invalid token, by scanning forward until encountering a
                     // character for something valid.
                     if(LexInvalid(bigToken, startIndex, bigIndex) is Lexeme lexeme) {
