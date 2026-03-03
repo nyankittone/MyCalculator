@@ -21,6 +21,7 @@ public enum LexemeID
     IncPrecedence,
     DecPrecedence,
     Func,
+    Invalid,
 }
 
 public struct Lexeme
@@ -57,6 +58,7 @@ public struct Lexeme
 
     public static Lexeme IncPrecedence(string token) => new Lexeme(LexemeID.IncPrecedence, token);
     public static Lexeme DecPrecedence(string token) => new Lexeme(LexemeID.DecPrecedence, token);
+    public static Lexeme Invalid(string token) => new Lexeme(LexemeID.Invalid, token);
 }
 
 // We're going to make the parser also take the role of the lexer, for convenience on my end bc I
@@ -288,6 +290,7 @@ public static class Parser
     }
 }
 
+
 public static class Lexer
 {
     private static Nullable<int> CheckNumber(string input)
@@ -342,8 +345,9 @@ public static class Lexer
     }
 
     private struct PartialLexResult(int index, bool wasCloseParenth) {
-        public int Index {get;} = index;
-        public bool WasCloseParenth {get;} = wasCloseParenth;
+        public int Index {get;} = index; // Where the PartialLex left off inside our token
+        public bool WasCloseParenth {get;} = wasCloseParenth; // Whether or not the last token
+                                                              // looked at was a closing parenthesis
     }
 
     private static PartialLexResult PartialLex(string token, int index, bool wasCloseParenth, List<Lexeme> outputList)
@@ -390,6 +394,15 @@ public static class Lexer
         return new PartialLexResult(index, false);
     }
 
+    private static Lexeme? LexInvalid(string token, int index) {
+        var match = RE.Regex.Match(token[index..], @"^[^0-9\(\)\+\-\*\/]*"); // This may be like
+                                                                             // slightly slow?
+        return match.Success switch {
+            true => Lexeme.Invalid(match.Value),
+            false => null,
+        };
+    }
+
     public static IEnumerable<Lexeme> Lex(string input)
     {
         List<Lexeme> partialLexResult = new();
@@ -411,9 +424,15 @@ public static class Lexer
 
                 if (partialLexResult.Count == 0)
                 {
-                    throw new NotImplementedException(
-                        "TODO: Find a reasonable way to recover from an invalid token. It doesn't seem too hard though."
-                    );
+                    Console.Error.WriteLine("what?");
+                    // Recover from an invalid token, by scanning forward until encountering a
+                    // character for something valid.
+                    if(LexInvalid(bigToken, startIndex) is Lexeme lexeme) {
+                        yield return lexeme;
+                        startIndex += lexeme.token.Length;
+                    } else {
+                        throw new Exception("Couldn't match invalid characters on invalid token!!!");
+                    }
                 }
 
                 foreach (var lexeme in partialLexResult)
