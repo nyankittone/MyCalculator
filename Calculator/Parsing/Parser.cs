@@ -2,22 +2,26 @@ using System;
 using System.Collections.Generic;
 namespace Calculator;
 
-public class ParserException(string commandLine, string message, int index) : Exception {
-    private string commandLine = commandLine;
-    private string message = message;
-    private int index = index;
-
-    // I will make this handle printing to stderr on its own, bc FUCK IT
-    public void PrettyPrint() {
-        Console.Error.WriteLine($"\x1b[1;95mat index {index}:\x1b[m {message}\n\tINSERT HIGHLIGHTING");
+// Should I feel dirty for using `internal` here?
+public class ParserException(string commandLine, string message, int index, int length) : Exception
+{
+    private string internalMessage = message;
+    internal string CommandLine { get; } = commandLine;
+    internal int Index { get; } = index;
+    internal int Length { get; } = length;
+    public override string Message
+    {
+        get => $"at index {Index}: {internalMessage}";
     }
 }
 
-public class ParserExceptionFactory(string commandLine) {
+public struct ParserExceptionFactory(string commandLine)
+{
     private string commandLine = commandLine;
 
-    public ParserException MakeException(string message, int index) {
-        return new ParserException(commandLine, message, index);
+    public ParserException MakeException(string message, int index, int length)
+    {
+        return new ParserException(commandLine, message, index, length);
     }
 }
 
@@ -35,42 +39,45 @@ public static class Parser
         public static EndTestResult Nah() => new EndTestResult(null, false);
     }
 
-    private static IExpression Merge(
-        IExpression? left, IExpression right, LexemeID? op,
-        Func<IExpression, IExpression, LexemeID?, IExpression> logic
-    ) => left switch
+    // This function returns `null` on error, and should never throw an exception. I find this fine
+    // since there's only 1 obvious way this thing can fail. Is this idiomatic C#? I don't think so,
+    // but it makes sense to me,,,
+    private static IExpression? Merge(IExpression? left, IExpression right, LexemeID? op) =>
+        left switch
+        {
+            null => right,
+            _ => op switch
+            {
+                LexemeID.Add => new Add(left, right),
+                LexemeID.Subtract => new Subtract(left, right),
+                LexemeID.Multiply => new Multiply(left, right),
+                LexemeID.Divide => new Divide(left, right),
+                LexemeID.Exponent => new Exponent(left, right),
+                _ => null,
+            },
+        };
+
+    private struct ParserStuff(ParserExceptionFactory maker)
     {
-        null => right,
-        _ => logic(left, right, op),
-    };
+        public ParserExceptionFactory ParserMaker { get; } = maker;
+        public List<ParserException> Errors { get; } = new();
+    }
 
-    private static IExpression MergeMult(IExpression left, IExpression right, LexemeID? op) =>
-        op switch
-        {
-            LexemeID.Multiply => new Multiply(left, right),
-            LexemeID.Divide => new Divide(left, right),
-            _ => throw new NotImplementedException("Not multiply or divide here"),
-        };
-
-    private static IExpression MergeAdd(IExpression left, IExpression right, LexemeID? op) =>
-        op switch
-        {
-            LexemeID.Add => new Add(left, right),
-            LexemeID.Subtract => new Subtract(left, right),
-            _ => throw new NotImplementedException("Not add or subtract here"),
-        };
-
-    private static IExpression MaybeRecurse(IEnumerator<Lexeme> tokens, uint depth)
+    private static IExpression MaybeRecurse(IEnumerator<Lexeme> tokens, ref ParserStuff stuff, uint depth)
     {
         return tokens.Current.ID == LexemeID.IncPrecedence ?
-            ParseRec(tokens, (tokens) => tokens.MoveNext() switch
+            ParseRec(tokens, ref stuff, (tokens) => tokens.MoveNext() switch
             {
                 true => tokens.Current.ID == LexemeID.DecPrecedence ? EndTestResult.Nah() : EndTestResult.Ye(tokens.Current),
                 false => EndTestResult.StreamEnd(),
             }, depth + 1) : new Number(tokens.Current.token);
     }
 
-    private static IExpression ParseRec(IEnumerator<Lexeme> tokens, Func<IEnumerator<Lexeme>, EndTestResult> tryNext, uint depth)
+    private static IExpression ParseRec(
+        IEnumerator<Lexeme> tokens,
+        ref ParserStuff stuff,
+        Func<IEnumerator<Lexeme>, EndTestResult> tryNext,
+        uint depth)
     {
         (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
         LexemeID? oldAddOperator = null;
@@ -81,7 +88,7 @@ public static class Parser
             throw new NotImplementedException("TODO: Implement error for no expression passed");
         }
 
-        right = MaybeRecurse(tokens, depth);
+        right = MaybeRecurse(tokens, ref stuff, depth);
         EndTestResult checkLexeme = EndTestResult.Nah(); // just initialize with *something* idfk
 
         // read two tokens at a time, first one should be an operator, second should be a number
@@ -93,7 +100,7 @@ public static class Parser
                 throw new NotImplementedException("TODO: Implement unbalanced expression error");
             }
 
-            IExpression operand = MaybeRecurse(tokens, depth);
+            IExpression operand = MaybeRecurse(tokens, ref stuff, depth);
 
             switch (op)
             {
@@ -102,16 +109,16 @@ public static class Parser
                     break;
                 case LexemeID.Multiply:
                 case LexemeID.Divide:
-                    mid = Merge(mid, right, oldMultOperator, MergeMult);
+                    mid = Merge(mid, right, oldMultOperator);
                     oldMultOperator = op;
                     right = operand;
                     break;
                 case LexemeID.Add:
                 case LexemeID.Subtract:
-                    mid = Merge(mid, right, oldMultOperator, MergeMult);
+                    mid = Merge(mid, right, oldMultOperator);
                     right = operand;
                     oldMultOperator = null;
-                    left = Merge(left, mid, oldAddOperator, MergeAdd);
+                    left = Merge(left, mid, oldAddOperator);
                     oldAddOperator = op;
                     // mid = new Number(operand);
                     mid = null;
@@ -126,7 +133,7 @@ public static class Parser
             throw new NotImplementedException("Unbalanced parentheses");
         }
 
-        mid = Merge(mid, right, oldMultOperator, MergeMult);
+        mid = Merge(mid, right, oldMultOperator);
         return (left, mid, oldAddOperator) switch
         {
             (null, null, _) => throw new Exception("All are null. How???"),
@@ -138,14 +145,13 @@ public static class Parser
         };
     }
 
-    // TODO: This parser ignores the lexer's identifiers of what kind of lexeme each element is.
-    // I'll want to rewrite this to make it actually use that information.
-    // TODO: Clean up parser code...
-    public static IExpression Parse(IEnumerable<Lexeme> tokens)
+    public static IExpression Parse(IEnumerable<Lexeme> tokens, ParserExceptionFactory errorMaker)
     {
+        ParserStuff stuff = new();
+
         using (var enumerator = tokens.GetEnumerator())
         {
-            return ParseRec(enumerator, (tokens) => tokens.MoveNext() switch
+            return ParseRec(enumerator, ref stuff, (tokens) => tokens.MoveNext() switch
             {
                 true => EndTestResult.Ye(tokens.Current),
                 false => EndTestResult.StreamEnd(),
@@ -154,7 +160,8 @@ public static class Parser
     }
 }
 
-public class YourMom {
+public class YourMom
+{
     private string status = "fat";
     public void PrintStatus() => Console.WriteLine($"yo mama so {status}");
 }

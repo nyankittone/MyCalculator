@@ -359,6 +359,7 @@ class Program
             if (arg == "--print-lexemes")
             {
                 printLexemes = true;
+                break;
             }
         }
 
@@ -374,11 +375,13 @@ class Program
                 }
             }
 
-            IExpression expr = Parser.Parse(lexemes);
+            IExpression expr = Parser.Parse(lexemes, new ParserExceptionFactory(line));
 
             Console.WriteLine(expr.Evaluate());
             Console.Error.Write("> ");
         }
     }
 }
+
+
 
