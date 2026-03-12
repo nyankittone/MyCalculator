@@ -164,13 +164,16 @@ public static class Parser
                     mid = null;
                     break;
                 default:
-                    throw new NotImplementedException("brooooooo wtf is this operator LMAOOO");
+                    stuff.Errors.Add(stuff.ParserMaker.MakeException($"Invalid operator \"{op.token}\".", op));
+                    break;
             }
         }
 
         if (checkLexeme.EndOfStream && depth > 0)
         {
-            throw new NotImplementedException("Unbalanced parentheses");
+            // throw new NotImplementedException("Unbalanced parentheses");
+            // TODO: Save the beginning lexeme for the open parenthesis for use in these errors
+            stuff.Errors.Add(stuff.ParserMaker.MakeException("Unclosed parenthesis", checkLexeme.Lexeme.Value));
         }
 
         // TODO: Handle more null cases here, as there are now WAYYYYYYY more possibilities.
