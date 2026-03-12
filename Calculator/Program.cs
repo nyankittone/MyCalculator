@@ -11,6 +11,7 @@ namespace Calculator;
 
 public enum LexemeID
 {
+    None,
     Number,
     Add,
     Subtract,
