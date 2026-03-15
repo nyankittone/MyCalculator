@@ -26,8 +26,10 @@ public enum LexemeID
     Invalid,
 }
 
-public static class Ext {
-    public static bool IsOperator(this LexemeID id) => id switch {
+public static class Ext
+{
+    public static bool IsOperator(this LexemeID id) => id switch
+    {
         LexemeID.Add or LexemeID.Subtract or LexemeID.Multiply
             or LexemeID.Divide or LexemeID.Exponent => true,
         _ => false,
@@ -36,15 +38,17 @@ public static class Ext {
 
 public struct Lexeme
 {
-    public LexemeID ID {get;}
-    public string token {get;}
-    public int? index {get;}
+    public LexemeID ID { get; }
+    public string token { get; }
+    public int? index { get; }
+    public uint seqIndex { get; }
 
-    private Lexeme(LexemeID ID, string token, int? index)
+    internal Lexeme(LexemeID ID, string token, int? index, uint sequence)
     {
         this.ID = ID;
         this.token = token;
         this.index = index;
+        this.seqIndex = sequence;
     }
 
     public override string ToString()
@@ -52,15 +56,23 @@ public struct Lexeme
         return $"@{index + 1}: {ID}(\"{token}\")";
     }
 
-    public static Lexeme Number(string token, int? index) => new Lexeme(LexemeID.Number, token, index);
-    public static Lexeme Add(int? index) => new Lexeme(LexemeID.Add, "+", index);
-    public static Lexeme Subtract(int? index) => new Lexeme(LexemeID.Subtract, "-", index);
-    public static Lexeme Multiply(int? index) => new Lexeme(LexemeID.Multiply, "*", index);
-    public static Lexeme Divide(int? index) => new Lexeme(LexemeID.Divide, "/", index);
-    public static Lexeme Exponent(int? index) => new Lexeme(LexemeID.Exponent, "**", index);
+    public bool IsOperator() => ID.IsOperator();
+}
 
-    public static Lexeme Operator(string token, int? index) {
-        LexemeID id = token switch {
+public class LexemeSpawner {
+    private uint counter = 0;
+
+    public Lexeme Number(string token, int? index) => new Lexeme(LexemeID.Number, token, index, counter++);
+    public Lexeme Add(int? index) => new Lexeme(LexemeID.Add, "+", index, counter++);
+    public Lexeme Subtract(int? index) => new Lexeme(LexemeID.Subtract, "-", index, counter++);
+    public Lexeme Multiply(int? index) => new Lexeme(LexemeID.Multiply, "*", index, counter++);
+    public Lexeme Divide(int? index) => new Lexeme(LexemeID.Divide, "/", index, counter++);
+    public Lexeme Exponent(int? index) => new Lexeme(LexemeID.Exponent, "**", index, counter++);
+
+    public Lexeme Operator(string token, int? index)
+    {
+        LexemeID id = token switch
+        {
             "+" => LexemeID.Add,
             "-" => LexemeID.Subtract,
             "*" => LexemeID.Multiply,
@@ -69,28 +81,33 @@ public struct Lexeme
             _ => throw new ArgumentException($"Invalid operator token {token}."),
         };
 
-        return new Lexeme(id, token, index);
+        return new Lexeme(id, token, index, counter++);
     }
 
-    public static Lexeme IncPrecedence(string token, int? index) => new Lexeme(LexemeID.IncPrecedence, token, index);
-    public static Lexeme DecPrecedence(string token,int? index) => new Lexeme(LexemeID.DecPrecedence, token, index);
-    public static Lexeme Invalid(string token, int? index) => new Lexeme(LexemeID.Invalid, token, index);
+    public Lexeme IncPrecedence(string token, int? index) => new Lexeme(LexemeID.IncPrecedence, token, index, counter++);
+    public Lexeme DecPrecedence(string token, int? index) => new Lexeme(LexemeID.DecPrecedence, token, index, counter++);
+    public Lexeme Invalid(string token, int? index) => new Lexeme(LexemeID.Invalid, token, index, counter++);
 
-    public bool IsOperator() => ID.IsOperator();
+    public Lexeme FromLexeme(in Lexeme based) => new Lexeme (
+        based.ID,
+        based.token,
+        based.index,
+        counter++
+    );
 }
 
 // We're going to make the parser also take the role of the lexer, for convenience on my end bc I
 // don't feel like being smart right now.
 public interface IExpression
 {
-    public LexemeID ID {get;}
+    public LexemeID ID { get; }
     public decimal Evaluate();
     public IEnumerable<IExpression> Children();
 }
 
 public class Number : IExpression
 {
-    public LexemeID ID {get;} = LexemeID.Number;
+    public LexemeID ID { get; } = LexemeID.Number;
     private decimal number;
     public Number(string token)
     {
@@ -98,14 +115,15 @@ public class Number : IExpression
     }
 
     public decimal Evaluate() => number;
-    public IEnumerable<IExpression> Children() {
+    public IEnumerable<IExpression> Children()
+    {
         yield break;
     }
 }
 
 public abstract class Operator : IExpression
 {
-    public abstract LexemeID ID {get;}
+    public abstract LexemeID ID { get; }
     protected IExpression left;
     protected IExpression right;
 
@@ -116,7 +134,8 @@ public abstract class Operator : IExpression
     }
 
     public abstract decimal Evaluate();
-    public IEnumerable<IExpression> Children() {
+    public IEnumerable<IExpression> Children()
+    {
         yield return left;
         yield return right;
     }
@@ -126,42 +145,42 @@ public abstract class Operator : IExpression
 // That's a little annoying.
 public class Add : Operator
 {
-    public override LexemeID ID {get;} = LexemeID.Add;
+    public override LexemeID ID { get; } = LexemeID.Add;
     public Add(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() + right.Evaluate();
 }
 
 public class Subtract : Operator
 {
-    public override LexemeID ID {get;} = LexemeID.Subtract;
+    public override LexemeID ID { get; } = LexemeID.Subtract;
     public Subtract(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() - right.Evaluate();
 }
 
 public class Multiply : Operator
 {
-    public override LexemeID ID {get;} = LexemeID.Multiply;
+    public override LexemeID ID { get; } = LexemeID.Multiply;
     public Multiply(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() * right.Evaluate();
 }
 
 public class Divide : Operator
 {
-    public override LexemeID ID {get;} = LexemeID.Divide;
+    public override LexemeID ID { get; } = LexemeID.Divide;
     public Divide(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => left.Evaluate() / right.Evaluate();
 }
 
 public class Exponent : Operator
 {
-    public override LexemeID ID {get;} = LexemeID.Exponent;
+    public override LexemeID ID { get; } = LexemeID.Exponent;
     public Exponent(IExpression left, IExpression right) : base(left, right) { }
     public override decimal Evaluate() => (decimal)Math.Pow((double)left.Evaluate(), (double)right.Evaluate());
 }
 
 public class Sqrt : IExpression
 {
-    public LexemeID ID {get;} = LexemeID.SquareRoot;
+    public LexemeID ID { get; } = LexemeID.SquareRoot;
     private IExpression unsquared;
     public Sqrt(IExpression expr)
     {
@@ -170,7 +189,8 @@ public class Sqrt : IExpression
 
     // grrrrrr I hate these casts
     public decimal Evaluate() => (decimal)Math.Sqrt((double)unsquared.Evaluate());
-    public IEnumerable<IExpression> Children() {
+    public IEnumerable<IExpression> Children()
+    {
         yield return unsquared;
     }
 }
@@ -228,13 +248,14 @@ public static class Lexer
         };
     }
 
-    private struct PartialLexResult(int index, bool wasCloseParenth) {
-        public int Index {get;} = index; // Where the PartialLex left off inside our token
-        public bool WasCloseParenth {get;} = wasCloseParenth; // Whether or not the last token
-                                                              // looked at was a closing parenthesis
+    private struct PartialLexResult(int index, bool wasCloseParenth)
+    {
+        public int Index { get; } = index; // Where the PartialLex left off inside our token
+        public bool WasCloseParenth { get; } = wasCloseParenth; // Whether or not the last token
+                                                                // looked at was a closing parenthesis
     }
 
-    private static PartialLexResult PartialLex(string token, int index, in int bigIndex, bool wasCloseParenth, List<Lexeme> outputList)
+    private static PartialLexResult PartialLex(string token, int index, in int bigIndex, bool wasCloseParenth, List<Lexeme> outputList, ref LexemeSpawner spawn)
     {
         outputList.Clear();
 
@@ -242,14 +263,14 @@ public static class Lexer
         {
             if (CheckOperator(token[index..]) is int lenny)
             {
-                outputList.Add(Lexeme.Operator(token[index..(index + lenny)], index + bigIndex));
+                outputList.Add(spawn.Operator(token[index..(index + lenny)], index + bigIndex));
                 index += lenny;
             }
         }
 
         if (CheckOperator(token[index..]) is int len2)
         {
-            outputList.Add(Lexeme.Operator(token[index..(index + len2)], index + bigIndex));
+            outputList.Add(spawn.Operator(token[index..(index + len2)], index + bigIndex));
             index += len2;
         }
 
@@ -259,18 +280,18 @@ public static class Lexer
         {
             if (token[index] == '(')
             {
-                outputList.Add(Lexeme.IncPrecedence("(", index + bigIndex));
+                outputList.Add(spawn.IncPrecedence("(", index + bigIndex));
                 index++;
             }
             else if (token[index] == ')')
             {
-                outputList.Add(Lexeme.DecPrecedence(")", index + bigIndex));
+                outputList.Add(spawn.DecPrecedence(")", index + bigIndex));
                 return new PartialLexResult(index + 1, true);
             }
 
             if (CheckNumber(token[index..]) is int len)
             {
-                outputList.Add(Lexeme.Number(token[index..(index + len)], index + bigIndex));
+                outputList.Add(spawn.Number(token[index..(index + len)], index + bigIndex));
                 index += len;
             }
         }
@@ -278,17 +299,20 @@ public static class Lexer
         return new PartialLexResult(index, false);
     }
 
-    private static Lexeme? LexInvalid(string token, int index, in int bigIndex) {
+    private static Lexeme? LexInvalid(string token, int index, in int bigIndex, ref LexemeSpawner spawn)
+    {
         var match = RE.Regex.Match(token[index..], @"^[^0-9\(\)\+\-\*\/]*"); // This may be like
                                                                              // slightly slow?
-        return match.Success switch {
-            true => Lexeme.Invalid(match.Value, index + bigIndex),
+        return match.Success switch
+        {
+            true => spawn.Invalid(match.Value, index + bigIndex),
             false => null,
         };
     }
 
     public static IEnumerable<Lexeme> Lex(string input)
     {
+        LexemeSpawner spawn = new();
         List<Lexeme> partialLexResult = new();
         int bigIndex = 0;
 
@@ -303,7 +327,7 @@ public static class Lexer
             while (bigToken[startIndex..].Length > 0)
             {
                 var result = PartialLex(
-                    bigToken, startIndex, bigIndex, wasCloseParenth, partialLexResult
+                    bigToken, startIndex, bigIndex, wasCloseParenth, partialLexResult, ref spawn
                 );
 
                 startIndex = result.Index;
@@ -313,10 +337,13 @@ public static class Lexer
                 {
                     // Recover from an invalid token, by scanning forward until encountering a
                     // character for something valid.
-                    if(LexInvalid(bigToken, startIndex, bigIndex) is Lexeme lexeme) {
+                    if (LexInvalid(bigToken, startIndex, bigIndex, ref spawn) is Lexeme lexeme)
+                    {
                         yield return lexeme;
                         startIndex += lexeme.token.Length;
-                    } else {
+                    }
+                    else
+                    {
                         throw new Exception("Couldn't match invalid characters on invalid token!!!");
                     }
                 }
@@ -337,6 +364,7 @@ class Program
     // TODO: Clean up this function's code a little.
     private static IEnumerable<Lexeme> Desugar(IEnumerable<Lexeme> tokens)
     {
+        LexemeSpawner spawn = new();
         // If we see opening or closing parenthesis, we need to splice in a * operator before/after
         // the symbol if the symbol before/after ultamitely represents a number.
 
@@ -346,16 +374,16 @@ class Program
             // check left parenthesis
             if (right.ID is LexemeID.IncPrecedence && left is not null && left.Value.ID is LexemeID.Number)
             {
-                yield return Lexeme.Operator("*", null);
+                yield return spawn.Operator("*", null);
             }
 
             // check right parenthesis
             if (left is not null && left.Value.ID is LexemeID.DecPrecedence && right.ID is (LexemeID.Number or LexemeID.IncPrecedence))
             {
-                yield return Lexeme.Operator("*", null);
+                yield return spawn.Operator("*", null);
             }
 
-            yield return right;
+            yield return spawn.FromLexeme(right);
             left = right;
         }
     }
@@ -387,29 +415,40 @@ class Program
                 }
             }
 
-            try {
+            try
+            {
                 IExpression expr = Parser.Parse(lexemes, new ParserExceptionFactory(line));
-                if(expr is IExpression _) {
+                if (expr is IExpression _)
+                {
                     Console.WriteLine(expr.Evaluate());
                 }
-            } catch(AggregateException ae) {
-                if(ae.InnerExceptions.Count == 1) {
+            }
+            catch (AggregateException ae)
+            {
+                if (ae.InnerExceptions.Count == 1)
+                {
                     Console.Error.Write("\x1b[1;91merror:\x1b[m ");
-                } else {
+                }
+                else
+                {
                     Console.Error.WriteLine("\x1b[1;91mmultiple errors occured:\x1b[m");
                 }
 
-                ae.Flatten().Handle((error) => {
-                    if(error is ParserException parserError) {
+                ae.Flatten().Handle((error) =>
+                {
+                    if (error is ParserException parserError)
+                    {
                         Console.Error.WriteLine(parserError.Message);
 
-                        Console.Error.WriteLine (
+                        Console.Error.WriteLine(
                             "  \x1b[1m{0}\x1b[m\r\n  {1}\x1b[1;91m^{2}\x1b[m",
                             line,
                             new string(' ', parserError.Index),
                             new string('~', parserError.Length - 1)
                         );
-                    } else if(error is BasicParserException _) {
+                    }
+                    else if (error is BasicParserException _)
+                    {
                         Console.Error.WriteLine(error.Message);
                     }
 

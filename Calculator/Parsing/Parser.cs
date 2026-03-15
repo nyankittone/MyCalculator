@@ -172,12 +172,13 @@ public static class Parser
                 continue;
             }
 
+            Lexeme openParenthLexeme = tokens.Current;
             IExpression? operand = MaybeRecurse(tokens, ref stuff, depth);
             if (operand is null)
             {
                 // Empty expression here, instead of garbage. We're fine to just add an error and
                 // move on?
-                stuff.Errors.Add(stuff.ErrorMaker.MakeException("Empty parenthesis? huhhh???", tokens.Current));
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException("Empty parenthesis? huhhh???", openParenthLexeme));
             }
 
             switch (op.ID)
@@ -229,7 +230,7 @@ public static class Parser
         };
     }
 
-    public static IExpression Parse(IEnumerable<Lexeme> tokens, ParserExceptionFactory errorMaker)
+    public static IExpression? Parse(IEnumerable<Lexeme> tokens, ParserExceptionFactory errorMaker)
     {
         ParserStuff stuff = new(errorMaker);
 
