@@ -124,6 +124,8 @@ public static class Parser
         while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
         {
             Lexeme op = tokens.Current;
+
+            getDatOperand:
             if (!tryNext(tokens).Lexeme.HasValue)
             {
                 stuff.Errors.Add(stuff.ParserMaker.MakeException($"Unbalanced operator \"{op.token}\"", op));
@@ -132,19 +134,16 @@ public static class Parser
             } else if(tokens.Current.IsOperator()) {
                 stuff.Errors.Add(stuff.ParserMaker.MakeException($"Expected operand, got operator", tokens.Current));
 
-                // xdfjnkgsdkljfhgdslkgjdhsfklfjghsdflkg
+                // HAHAHAHAHA fuck me and my shitty awful codebase
+                goto getDatOperand;
             }
-
-            // TODO: Handle token here not being an valid one for an operand.
-            // What should be done on such an event? Try to see if the next token is an operand,
-            // imo.
 
             IExpression? operand = MaybeRecurse(tokens, ref stuff, depth);
             if (operand is null)
             {
                 // Empty expression here, instead of garbage. We're fine to just add an error and
                 // move on?
-                stuff.Errors.Add(stuff.ParserMaker.MakeException("Empty parenthesis? idk anymore,", tokens.Current));
+                stuff.Errors.Add(stuff.ParserMaker.MakeException("Empty parenthesis? huhhh???", tokens.Current));
             }
 
             switch (op.ID)

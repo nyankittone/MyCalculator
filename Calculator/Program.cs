@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using RE = System.Text.RegularExpressions;
+using Txt = System.Text;
 namespace Calculator;
 
 public enum LexemeID
@@ -386,9 +387,35 @@ class Program
                 }
             }
 
-            IExpression expr = Parser.Parse(lexemes, new ParserExceptionFactory(line));
+            try {
+                IExpression expr = Parser.Parse(lexemes, new ParserExceptionFactory(line));
+                Console.WriteLine(expr.Evaluate());
+            } catch(AggregateException ae) {
+                if(ae.InnerExceptions.Count == 1) {
+                    Console.Error.Write("\x1b[1;91merror:\x1b[m ");
+                } else {
+                    Console.Error.WriteLine("\x1b[1;91mmultiple errors occured:\x1b[m");
+                }
 
-            Console.WriteLine(expr.Evaluate());
+                ae.Flatten().Handle((error) => {
+                    if(error is ParserException parserError) {
+                        Console.Error.WriteLine(parserError.Message);
+
+                        Console.Error.WriteLine (
+                            "  \x1b[1m{0}\x1b[m\r\n  {1}\x1b[1;91m^{2}\x1b[m",
+                            line,
+                            new string(' ', parserError.Index),
+                            new string('~', parserError.Length - 1)
+                        );
+                    } else if(error is BasicParserException _) {
+                        Console.Error.WriteLine(error.Message);
+                    }
+
+                    Console.WriteLine();
+                    return true;
+                });
+            }
+
             Console.Error.Write("> ");
         }
     }
