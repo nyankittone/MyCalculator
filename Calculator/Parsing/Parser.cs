@@ -73,7 +73,7 @@ public static class Parser
 
     private struct ParserStuff
     {
-        public ParserExceptionFactory ParserMaker { get; }
+        public ParserExceptionFactory ErrorMaker { get; }
         public List<Exception> Errors { get; } = new();
 
         [Obsolete("Parameterless constructor called by mistake", true)]
@@ -81,7 +81,7 @@ public static class Parser
 
         public ParserStuff(ParserExceptionFactory maker)
         {
-            ParserMaker = maker;
+            ErrorMaker = maker;
         }
     }
 
@@ -114,7 +114,7 @@ public static class Parser
 
             if (lexeme.ID.IsOperator() || lexeme.ID == LexemeID.Invalid)
             {
-                stuff.Errors.Add(stuff.ParserMaker.MakeException("Found operator or invalid token", lexeme));
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException("Found operator or invalid token", lexeme));
                 continue;
             }
 
@@ -149,7 +149,7 @@ public static class Parser
             }
             else
             {
-                stuff.Errors.Add(stuff.ParserMaker.MakeException("Empty parenthesis", firstLexeme));
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException("Empty parenthesis", firstLexeme));
             }
         }
 
@@ -159,20 +159,14 @@ public static class Parser
         while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
         {
             Lexeme op = tokens.Current;
-
-        getDatOperand:
-            if (!tryNext(tokens).Lexeme.HasValue)
-            {
-                stuff.Errors.Add(stuff.ParserMaker.MakeException($"Unbalanced operator \"{op.token}\"", op));
-
+            if(!op.IsOperator()) {
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Expected operator, got your mom", op));
                 continue;
             }
-            else if (tokens.Current.IsOperator())
-            {
-                stuff.Errors.Add(stuff.ParserMaker.MakeException($"Expected operand, got operator", tokens.Current));
 
-                // HAHAHAHAHA fuck me and my shitty awful codebase
-                goto getDatOperand;
+            if(FindValidOperand(tokens, ref stuff, tryNext)) {
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Unbalanced operator \"{op.token}\"", op));
+                continue;
             }
 
             IExpression? operand = MaybeRecurse(tokens, ref stuff, depth);
@@ -180,7 +174,7 @@ public static class Parser
             {
                 // Empty expression here, instead of garbage. We're fine to just add an error and
                 // move on?
-                stuff.Errors.Add(stuff.ParserMaker.MakeException("Empty parenthesis? huhhh???", tokens.Current));
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException("Empty parenthesis? huhhh???", tokens.Current));
             }
 
             switch (op.ID)
@@ -207,7 +201,7 @@ public static class Parser
                     mid = null;
                     break;
                 default:
-                    stuff.Errors.Add(stuff.ParserMaker.MakeException($"Invalid operator \"{op.token}\".", op));
+                    stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Invalid operator \"{op.token}\".", op));
                     break;
             }
         }
@@ -216,7 +210,7 @@ public static class Parser
         {
             // throw new NotImplementedException("Unbalanced parentheses");
             // TODO: Save the beginning lexeme for the open parenthesis for use in these errors
-            stuff.Errors.Add(stuff.ParserMaker.MakeException("Unclosed parenthesis", checkLexeme.Lexeme.Value));
+            stuff.Errors.Add(stuff.ErrorMaker.MakeException("Unclosed parenthesis", checkLexeme.Lexeme.Value));
         }
 
         // TODO: Handle more null cases here, as there are now WAYYYYYYY more possibilities.
