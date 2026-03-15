@@ -129,7 +129,15 @@ public static class Parser
                 stuff.Errors.Add(stuff.ParserMaker.MakeException($"Unbalanced operator \"{op.token}\"", op));
 
                 continue;
+            } else if(tokens.Current.IsOperator()) {
+                stuff.Errors.Add(stuff.ParserMaker.MakeException($"Expected operand, got operator", tokens.Current));
+
+                // xdfjnkgsdkljfhgdslkgjdhsfklfjghsdflkg
             }
+
+            // TODO: Handle token here not being an valid one for an operand.
+            // What should be done on such an event? Try to see if the next token is an operand,
+            // imo.
 
             IExpression? operand = MaybeRecurse(tokens, ref stuff, depth);
             if (operand is null)
@@ -192,7 +200,6 @@ public static class Parser
     public static IExpression Parse(IEnumerable<Lexeme> tokens, ParserExceptionFactory errorMaker)
     {
         ParserStuff stuff = new(errorMaker);
-        Console.Error.WriteLine($"meow {stuff.Errors}");
 
         using (var enumerator = tokens.GetEnumerator())
         {

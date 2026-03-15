@@ -25,6 +25,14 @@ public enum LexemeID
     Invalid,
 }
 
+public static class Extensions {
+    public static bool IsOperator(this LexemeID id) => id switch {
+        LexemeID.Add or LexemeID.Subtract or LexemeID.Multiply
+            or LexemeID.Divide or LexemeID.Exponent => true,
+        _ => false,
+    };
+}
+
 public struct Lexeme
 {
     public LexemeID ID {get;}
@@ -66,6 +74,8 @@ public struct Lexeme
     public static Lexeme IncPrecedence(string token, int? index) => new Lexeme(LexemeID.IncPrecedence, token, index);
     public static Lexeme DecPrecedence(string token,int? index) => new Lexeme(LexemeID.DecPrecedence, token, index);
     public static Lexeme Invalid(string token, int? index) => new Lexeme(LexemeID.Invalid, token, index);
+
+    public bool IsOperator() => ID.IsOperator();
 }
 
 // We're going to make the parser also take the role of the lexer, for convenience on my end bc I
@@ -383,6 +393,4 @@ class Program
         }
     }
 }
-
-
 

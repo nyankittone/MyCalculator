@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "TTga6baKGIY=",
+  "dgSpecHash": "WKjtfYW/Nlk=",
   "success": true,
   "projectFilePath": "/home/tiffany/Programming/Calculator/Calculator/Calculator.csproj",
   "expectedPackageFiles": [
-    "/home/tiffany/.nuget/packages/microsoft.aspnetcore.app.ref/10.0.3/microsoft.aspnetcore.app.ref.10.0.3.nupkg.sha512"
+    "/home/tiffany/.nuget/packages/microsoft.aspnetcore.app.ref/10.0.4/microsoft.aspnetcore.app.ref.10.0.4.nupkg.sha512"
   ],
   "logs": []
 }
