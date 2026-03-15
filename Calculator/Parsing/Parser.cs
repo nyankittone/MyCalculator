@@ -105,19 +105,37 @@ public static class Parser
         LexemeID? oldAddOperator = null;
         LexemeID? oldMultOperator = null;
 
-        if (!tryNext(tokens).Lexeme.HasValue)
-        {
-            return null;
+        // I hate this loop so fucking much bruh
+        while(true) {
+            if (!tryNext(tokens).Lexeme.HasValue)
+            {
+                return null;
+            }
+
+            var lexeme = tokens.Current;
+            
+            if(lexeme.ID.IsOperator() || lexeme.ID == LexemeID.Invalid) 
+            {
+                stuff.Errors.Add(stuff.ParserMaker.MakeException("Found operator or invalid token", lexeme));
+                continue;
+            }
+
+            break;
         }
 
-        if (MaybeRecurse(tokens, ref stuff, depth) is IExpression resolved)
         {
-            right = resolved;
+            Lexeme firstLexeme = tokens.Current;
+
+            if (MaybeRecurse(tokens, ref stuff, depth) is IExpression resolved)
+            {
+                right = resolved;
+            }
+            else
+            {
+                stuff.Errors.Add(stuff.ParserMaker.MakeException("Empty parenthesis", firstLexeme));
+            }
         }
-        else
-        {
-            stuff.Errors.Add(stuff.ParserMaker.MakeException("Empty parenthesis", tokens.Current));
-        }
+
         EndTestResult checkLexeme = EndTestResult.Nah(); // just initialize with *something* idfk
 
         // read two tokens at a time, first one should be an operator, second should be a number
@@ -167,7 +185,6 @@ public static class Parser
                     oldMultOperator = null;
                     left = Merge(left, mid, oldAddOperator);
                     oldAddOperator = op.ID;
-                    // mid = new Number(operand);
                     mid = null;
                     break;
                 default:
@@ -187,7 +204,7 @@ public static class Parser
         mid = Merge(mid, right, oldMultOperator);
         return (left, mid, oldAddOperator) switch
         {
-            (null, null, _) => throw new Exception("All are null. How???"),
+            (null, null, _) => null,
             (null, _, _) => mid,
             (_, null, _) => left,
             (_, _, LexemeID.Add) => new Add(left, mid),
