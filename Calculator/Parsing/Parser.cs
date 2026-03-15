@@ -150,7 +150,7 @@ public static class Parser
             {
                 right = resolved;
             }
-            else
+            else if (tokens.Current.seqIndex - firstLexeme.seqIndex < 2)
             {
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException("Empty parenthesis", firstLexeme));
             }
