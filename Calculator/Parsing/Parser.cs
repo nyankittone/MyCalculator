@@ -95,6 +95,36 @@ public static class Parser
             }, depth + 1) : new Number(tokens.Current.token);
     }
 
+    private static bool FindValidOperand(
+        IEnumerator<Lexeme> tokens,
+        ref ParserStuff stuff,
+        Func<IEnumerator<Lexeme>, EndTestResult> tryNext
+        )
+    {
+
+        // I hate this loop so fucking much bruh
+        while (true)
+        {
+            if (!tryNext(tokens).Lexeme.HasValue)
+            {
+                return true;
+            }
+
+            var lexeme = tokens.Current;
+
+            if (lexeme.ID.IsOperator() || lexeme.ID == LexemeID.Invalid)
+            {
+                stuff.Errors.Add(stuff.ParserMaker.MakeException("Found operator or invalid token", lexeme));
+                continue;
+            }
+
+            break;
+        }
+
+        return false;
+    }
+
+
     private static IExpression? ParseRec(
         IEnumerator<Lexeme> tokens,
         ref ParserStuff stuff,
@@ -105,22 +135,9 @@ public static class Parser
         LexemeID? oldAddOperator = null;
         LexemeID? oldMultOperator = null;
 
-        // I hate this loop so fucking much bruh
-        while(true) {
-            if (!tryNext(tokens).Lexeme.HasValue)
-            {
-                return null;
-            }
-
-            var lexeme = tokens.Current;
-            
-            if(lexeme.ID.IsOperator() || lexeme.ID == LexemeID.Invalid) 
-            {
-                stuff.Errors.Add(stuff.ParserMaker.MakeException("Found operator or invalid token", lexeme));
-                continue;
-            }
-
-            break;
+        if (FindValidOperand(tokens, ref stuff, tryNext))
+        {
+            return null;
         }
 
         {
@@ -143,13 +160,15 @@ public static class Parser
         {
             Lexeme op = tokens.Current;
 
-            getDatOperand:
+        getDatOperand:
             if (!tryNext(tokens).Lexeme.HasValue)
             {
                 stuff.Errors.Add(stuff.ParserMaker.MakeException($"Unbalanced operator \"{op.token}\"", op));
 
                 continue;
-            } else if(tokens.Current.IsOperator()) {
+            }
+            else if (tokens.Current.IsOperator())
+            {
                 stuff.Errors.Add(stuff.ParserMaker.MakeException($"Expected operand, got operator", tokens.Current));
 
                 // HAHAHAHAHA fuck me and my shitty awful codebase
