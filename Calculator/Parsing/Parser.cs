@@ -114,7 +114,7 @@ public static class Parser
 
             if (lexeme.ID.IsOperator() || lexeme.ID == LexemeID.Invalid)
             {
-                stuff.Errors.Add(stuff.ErrorMaker.MakeException("Found operator or invalid token", lexeme));
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Expected number or opening parenthesis, got {lexeme.ID.ToString()}", lexeme));
                 continue;
             }
 
@@ -140,6 +140,9 @@ public static class Parser
             return null;
         }
 
+        // This right here is the first token to actually make any sense. Ensure that it's
+        // either a number or some expression surrounded by parenthesis, and if so, if the
+        // parenthesis contain anything.
         {
             Lexeme firstLexeme = tokens.Current;
 
@@ -159,8 +162,8 @@ public static class Parser
         while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
         {
             Lexeme op = tokens.Current;
-            if(!op.IsOperator()) {
-                stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Expected operator, got your mom", op));
+            if(op.ID == LexemeID.Invalid || op.ID == LexemeID.None) {
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Expected operator, got {op.ID.ToString()}", op));
                 continue;
             }
 

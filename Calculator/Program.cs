@@ -26,7 +26,7 @@ public enum LexemeID
     Invalid,
 }
 
-public static class Extensions {
+public static class Ext {
     public static bool IsOperator(this LexemeID id) => id switch {
         LexemeID.Add or LexemeID.Subtract or LexemeID.Multiply
             or LexemeID.Divide or LexemeID.Exponent => true,
@@ -389,7 +389,9 @@ class Program
 
             try {
                 IExpression expr = Parser.Parse(lexemes, new ParserExceptionFactory(line));
-                Console.WriteLine(expr.Evaluate());
+                if(expr is IExpression _) {
+                    Console.WriteLine(expr.Evaluate());
+                }
             } catch(AggregateException ae) {
                 if(ae.InnerExceptions.Count == 1) {
                     Console.Error.Write("\x1b[1;91merror:\x1b[m ");
