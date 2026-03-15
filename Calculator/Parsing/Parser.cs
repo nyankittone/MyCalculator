@@ -176,9 +176,9 @@ public static class Parser
             IExpression? operand = MaybeRecurse(tokens, ref stuff, depth);
             if (operand is null)
             {
-                // Empty expression here, instead of garbage. We're fine to just add an error and
-                // move on?
-                stuff.Errors.Add(stuff.ErrorMaker.MakeException("Empty parenthesis? huhhh???", openParenthLexeme));
+                if(tokens.Current.seqIndex - openParenthLexeme.seqIndex < 2) {
+                    stuff.Errors.Add(stuff.ErrorMaker.MakeException("Empty parenthesis", openParenthLexeme));
+                }
             }
 
             switch (op.ID)
