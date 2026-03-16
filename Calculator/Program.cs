@@ -39,9 +39,6 @@ class Program
 
     static void Main(string[] args)
     {
-        Calculator.YourMom mom = new();
-        mom.PrintStatus();
-
         bool printLexemes = false;
         foreach (string arg in args)
         {
@@ -64,9 +61,10 @@ class Program
                 }
             }
 
+            // TODO: Split this code into seperate functions to reduce indentation.
             try
             {
-                IExpression expr = Parser.Parse(lexemes, new ParserExceptionFactory(line));
+                IExpression? expr = Parser.Parse(lexemes, new ParserExceptionFactory(line));
                 if (expr is IExpression _)
                 {
                     Console.WriteLine(expr.Evaluate());

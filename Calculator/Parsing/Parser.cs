@@ -101,8 +101,6 @@ public static class Parser
         Func<IEnumerator<Lexeme>, EndTestResult> tryNext
         )
     {
-
-        // I hate this loop so fucking much bruh
         while (true)
         {
             if (!tryNext(tokens).Lexeme.HasValue)
@@ -162,12 +160,14 @@ public static class Parser
         while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
         {
             Lexeme op = tokens.Current;
-            if(op.ID == LexemeID.Invalid || op.ID == LexemeID.None) {
+            if (op.ID == LexemeID.Invalid || op.ID == LexemeID.None)
+            {
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Expected operator, got {op.ID.ToString()}", op));
                 continue;
             }
 
-            if(FindValidOperand(tokens, ref stuff, tryNext)) {
+            if (FindValidOperand(tokens, ref stuff, tryNext))
+            {
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Unbalanced operator \"{op.token}\"", op));
                 continue;
             }
@@ -176,7 +176,8 @@ public static class Parser
             IExpression? operand = MaybeRecurse(tokens, ref stuff, depth);
             if (operand is null)
             {
-                if(tokens.Current.seqIndex - openParenthLexeme.seqIndex < 2) {
+                if (tokens.Current.seqIndex - openParenthLexeme.seqIndex < 2)
+                {
                     stuff.Errors.Add(stuff.ErrorMaker.MakeException("Empty parenthesis", openParenthLexeme));
                 }
             }
@@ -250,11 +251,5 @@ public static class Parser
             return expr;
         }
     }
-}
-
-public class YourMom
-{
-    private string status = "fat";
-    public void PrintStatus() => Console.WriteLine($"yo mama so {status}");
 }
 
