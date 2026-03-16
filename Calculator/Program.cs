@@ -39,13 +39,17 @@ class Program
 
     static void Main(string[] args)
     {
-        bool printLexemes = false;
+        (bool printLexemes, bool printExceptions) = (false, false);
+
         foreach (string arg in args)
         {
-            if (arg == "--print-lexemes")
-            {
-                printLexemes = true;
-                break;
+            switch(arg) {
+                case "--print-lexemes":
+                    printLexemes = true;
+                    break;
+                case "--print-exceptions":
+                    printExceptions = true;
+                    break;
             }
         }
 
@@ -99,9 +103,14 @@ class Program
                         Console.Error.WriteLine(error.Message);
                     }
 
-                    Console.WriteLine();
+                    Console.Error.WriteLine();
                     return true;
                 });
+
+                // TODO: Place this somewhere better
+                if(printExceptions) {
+                    Console.Error.WriteLine(".NET error:\r\n{0}", ae);
+                }
             }
 
             Console.Error.Write("> ");
