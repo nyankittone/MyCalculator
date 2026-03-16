@@ -101,6 +101,8 @@ public static class Parser
         Func<IEnumerator<Lexeme>, EndTestResult> tryNext
         )
     {
+        bool wasInvalid = false;
+
         while (true)
         {
             if (!tryNext(tokens).Lexeme.HasValue)
@@ -110,9 +112,23 @@ public static class Parser
 
             var lexeme = tokens.Current;
 
-            if (lexeme.ID.IsOperator() || lexeme.ID == LexemeID.Invalid)
+            if (lexeme.ID == LexemeID.Invalid)
             {
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Expected number or opening parenthesis, got {lexeme.ID.ToString()}", lexeme));
+                wasInvalid = true;
+                continue;
+            }
+
+            if (lexeme.IsOperator())
+            {
+                if (wasInvalid)
+                {
+                    wasInvalid = false;
+                }
+                else
+                {
+                    stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Expected number or opening parenthesis, got {lexeme.ID.ToString()}", lexeme));
+                }
                 continue;
             }
 
