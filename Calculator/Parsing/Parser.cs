@@ -119,7 +119,7 @@ public static class Parser
                 continue;
             }
 
-            if (((ILexeme)lexeme).IsOperator())
+            if (lexeme.IsOperator())
             {
                 if (wasInvalid)
                 {

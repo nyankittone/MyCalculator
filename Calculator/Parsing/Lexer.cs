@@ -28,17 +28,16 @@ public static class Ext
             or LexemeID.Divide or LexemeID.Exponent => true,
         _ => false,
     };
+
+    // Totally not sketchy to have default methods as extensions... but it's the most ergonomic way
+    // I can do this imo.
+    public static bool IsOperator(this ILexeme lexeme) => lexeme.ID.IsOperator();
+    public static bool Equals(this ILexeme x, ILexeme y) => x.ID == y.ID && x.Token == y.Token;
 }
 
 public interface ILexeme {
     LexemeID ID {get;}
     string Token {get;}
-
-    public virtual bool IsOperator() => ID.IsOperator();
-    
-    // NOTE: I am currently too stupid to know how to overload the equality operators in an
-    // interface. So we'll have a dumbass method hanging off for now.
-    public bool Equals(ILexeme? l) => l is not null && ID == l.ID && Token == l.Token;
 }
 
 public readonly record struct Lexeme(LexemeID ID, string Token) : ILexeme {
