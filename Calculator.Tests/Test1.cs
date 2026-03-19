@@ -3,13 +3,13 @@
 // Handing off L's to this whole codebase
 static class L
 {
-    public static Lexeme Add = Lexeme.Operator("+");
-    public static Lexeme Sub = Lexeme.Operator("-");
-    public static Lexeme Mult = Lexeme.Operator("*");
-    public static Lexeme Div = Lexeme.Operator("/");
-    public static Lexeme Exp = Lexeme.Operator("**");
-    public static Lexeme Open = Lexeme.IncPrecedence("(");
-    public static Lexeme Close = Lexeme.DecPrecedence(")");
+    public static Lexeme Add = new Lexeme(LexemeID.Add, "+");
+    public static Lexeme Sub = new Lexeme(LexemeID.Subtract, "-");
+    public static Lexeme Mult = new Lexeme(LexemeID.Multiply, "*");
+    public static Lexeme Div = new Lexeme(LexemeID.Divide, "/");
+    public static Lexeme Exp = new Lexeme(LexemeID.Exponent, "**");
+    public static Lexeme Open = new Lexeme(LexemeID.IncPrecedence, "(");
+    public static Lexeme Close = new Lexeme(LexemeID.DecPrecedence, ")");
 }
 
 [TestClass]

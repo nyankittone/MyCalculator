@@ -30,34 +30,36 @@ public static class Ext
     };
 }
 
-public struct Lexeme
-{
-    public LexemeID ID { get; }
-    public string token { get; }
-    public int? index { get; }
-    public uint? seqIndex { get; }
-
-    public Lexeme(LexemeID ID, string token, int? index, uint sequence)
-    {
-        this.ID = ID;
-        this.token = token;
-        this.index = index;
-        this.seqIndex = sequence;
-    }
-
-    public Lexeme(LexemeID ID, string token) {
-        this.ID = ID;
-        this.token = token;
-        this.index = null;
-        this.seqIndex = null;
-    }
-
-    public override string ToString()
-    {
-        return $"@{index + 1}: {ID}(\"{token}\")";
-    }
-
+public interface ILexeme {
+    LexemeID ID {get;}
+    string Token {get;}
     public bool IsOperator() => ID.IsOperator();
+}
+
+public readonly record struct Lexeme(LexemeID ID, string Token) : ILexeme {
+    public override string ToString() => $"{ID}(\"{Token}\")";
+}
+
+// In the future, a better achitectural decision would be to make this an interface. With one data
+// type having the nullable properties and the othe4r not having them. I didn't feel like doing that
+// here, but yeah...
+public struct SequentialLexeme : ILexeme
+{
+    private Lexeme inside;
+    public LexemeID ID {get => inside.ID;}
+    public string Token {get => inside.Token;}
+
+    public int? Index { get; }
+    public uint SeqIndex { get; }
+
+    internal SequentialLexeme(Lexeme lexeme, int? index, uint sequence)
+    {
+        this.inside = lexeme;
+        this.Index = index;
+        this.SeqIndex = sequence;
+    }
+
+    public override string ToString() => $"@{Index + 1}: {inside}";
 }
 
 public class LexemeSpawner {
