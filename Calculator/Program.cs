@@ -11,7 +11,7 @@ namespace Calculator;
 class Program
 {
     // TODO: Clean up this function's code a little.
-    private static IEnumerable<SequentialLexeme> Desugar(IEnumerable<Lexeme> tokens)
+    private static IEnumerable<SequentialLexeme> Desugar(IEnumerable<SequentialLexeme> tokens)
     {
         LexemeSpawner spawn = new();
         // If we see opening or closing parenthesis, we need to splice in a * operator before/after
@@ -57,10 +57,10 @@ class Program
         Console.Error.Write("> ");
         while (Console.ReadLine() is string line)
         {
-            Lexeme[] lexemes = Desugar(Lexer.Lex(line)).ToArray();
+            SequentialLexeme[] lexemes = Desugar(Lexer.Lex(line)).ToArray();
             if (printLexemes)
             {
-                foreach (Lexeme lexeme in lexemes)
+                foreach (SequentialLexeme lexeme in lexemes)
                 {
                     Console.Error.WriteLine($"\x1b[95m{lexeme}\x1b[m");
                 }

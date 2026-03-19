@@ -180,7 +180,7 @@ public static class Lexer
                                                                 // looked at was a closing parenthesis
     }
 
-    private static PartialLexResult PartialLex(string token, int index, in int bigIndex, bool wasCloseParenth, List<Lexeme> outputList, ref LexemeSpawner spawn)
+    private static PartialLexResult PartialLex(string token, int index, in int bigIndex, bool wasCloseParenth, List<SequentialLexeme> outputList, ref LexemeSpawner spawn)
     {
         outputList.Clear();
 
@@ -224,7 +224,7 @@ public static class Lexer
         return new PartialLexResult(index, false);
     }
 
-    private static Lexeme? LexInvalid(string token, int index, in int bigIndex, ref LexemeSpawner spawn)
+    private static SequentialLexeme? LexInvalid(string token, int index, in int bigIndex, ref LexemeSpawner spawn)
     {
         var match = RE.Regex.Match(token[index..], @"^[^0-9\(\)\+\-\*\/]*"); // This may be like
                                                                              // slightly slow?
@@ -235,10 +235,10 @@ public static class Lexer
         };
     }
 
-    public static IEnumerable<Lexeme> Lex(string input)
+    public static IEnumerable<SequentialLexeme> Lex(string input)
     {
         LexemeSpawner spawn = new();
-        List<Lexeme> partialLexResult = new();
+        List<SequentialLexeme> partialLexResult = new();
 
         // TODO: Iterate between whitespace while preserving info about where the whitespace is and
         // how much of it is there, so we can get more accurate index numbers for each lexeme.
@@ -261,13 +261,14 @@ public static class Lexer
                 {
                     // Recover from an invalid token, by scanning forward until encountering a
                     // character for something valid.
-                    if (LexInvalid(bigToken, startIndex, bigIndex, ref spawn) is Lexeme lexeme)
+                    if (LexInvalid(bigToken, startIndex, bigIndex, ref spawn) is SequentialLexeme lexeme)
                     {
                         yield return lexeme;
-                        startIndex += lexeme.token.Length;
+                        startIndex += lexeme.Token.Length;
                     }
                     else
                     {
+                        // TODO: Find a better exception to throw here.
                         throw new Exception("Couldn't match invalid characters on invalid token!!!");
                     }
                 }

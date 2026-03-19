@@ -164,7 +164,7 @@ public static class Parser
             {
                 right = resolved;
             }
-            else if (tokens.Current.seqIndex - firstLexeme.seqIndex < 2)
+            else if (tokens.Current.SeqIndex - firstLexeme.SeqIndex < 2)
             {
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException("Empty parenthesis", firstLexeme));
             }
@@ -184,7 +184,7 @@ public static class Parser
 
             if (FindValidOperand(tokens, ref stuff, tryNext))
             {
-                stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Unbalanced operator \"{op.token}\"", op));
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Unbalanced operator \"{op.Token}\"", op));
                 continue;
             }
 
@@ -192,7 +192,7 @@ public static class Parser
             IExpression? operand = MaybeRecurse(tokens, ref stuff, depth);
             if (operand is null)
             {
-                if (tokens.Current.seqIndex - openParenthLexeme.seqIndex < 2)
+                if (tokens.Current.SeqIndex - openParenthLexeme.SeqIndex < 2)
                 {
                     stuff.Errors.Add(stuff.ErrorMaker.MakeException("Empty parenthesis", openParenthLexeme));
                 }
@@ -222,7 +222,7 @@ public static class Parser
                     mid = null;
                     break;
                 default:
-                    stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Invalid operator \"{op.token}\".", op));
+                    stuff.Errors.Add(stuff.ErrorMaker.MakeException($"Invalid operator \"{op.Token}\".", op));
                     break;
             }
         }
