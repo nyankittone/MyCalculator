@@ -33,11 +33,17 @@ public static class Ext
 public interface ILexeme {
     LexemeID ID {get;}
     string Token {get;}
-    public bool IsOperator() => ID.IsOperator();
+
+    public virtual bool IsOperator() => ID.IsOperator();
+    
+    // NOTE: I am currently too stupid to know how to overload the equality operators in an
+    // interface. So we'll have a dumbass method hanging off for now.
+    public bool Equals(ILexeme? l) => l is not null && ID == l.ID && Token == l.Token;
 }
 
 public readonly record struct Lexeme(LexemeID ID, string Token) : ILexeme {
-    public override string ToString() => $"{ID}(\"{Token}\")";
+    public override string ToString() => $"{ID}(\"{Token}\")"; // This might make more sense to add
+                                                               // to the interface
 }
 
 // In the future, a better achitectural decision would be to make this an interface. With one data
@@ -65,14 +71,20 @@ public struct SequentialLexeme : ILexeme
 public class LexemeSpawner {
     private uint counter = 0;
 
-    public Lexeme Number(string token, int? index) => new Lexeme(LexemeID.Number, token, index, counter++);
-    public Lexeme Add(int? index) => new Lexeme(LexemeID.Add, "+", index, counter++);
-    public Lexeme Subtract(int? index) => new Lexeme(LexemeID.Subtract, "-", index, counter++);
-    public Lexeme Multiply(int? index) => new Lexeme(LexemeID.Multiply, "*", index, counter++);
-    public Lexeme Divide(int? index) => new Lexeme(LexemeID.Divide, "/", index, counter++);
-    public Lexeme Exponent(int? index) => new Lexeme(LexemeID.Exponent, "**", index, counter++);
+    public SequentialLexeme Number(string token, int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.Number, token), index, counter++);
+    public SequentialLexeme Add(int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.Add, "+"), index, counter++);
+    public SequentialLexeme Subtract(int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.Subtract, "-"), index, counter++);
+    public SequentialLexeme Multiply(int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.Multiply, "*"), index, counter++);
+    public SequentialLexeme Divide(int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.Divide, "/"), index, counter++);
+    public SequentialLexeme Exponent(int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.Exponent, "**"), index, counter++);
 
-    public Lexeme Operator(string token, int? index)
+    public SequentialLexeme Operator(string token, int? index)
     {
         LexemeID id = token switch
         {
@@ -84,17 +96,20 @@ public class LexemeSpawner {
             _ => throw new ArgumentException($"Invalid operator token {token}."),
         };
 
-        return new Lexeme(id, token, index, counter++);
+        return new SequentialLexeme(new Lexeme(id, token), index, counter++);
     }
 
-    public Lexeme IncPrecedence(string token, int? index) => new Lexeme(LexemeID.IncPrecedence, token, index, counter++);
-    public Lexeme DecPrecedence(string token, int? index) => new Lexeme(LexemeID.DecPrecedence, token, index, counter++);
-    public Lexeme Invalid(string token, int? index) => new Lexeme(LexemeID.Invalid, token, index, counter++);
+    public SequentialLexeme IncPrecedence(string token, int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.IncPrecedence, token), index, counter++);
+    public SequentialLexeme DecPrecedence(string token, int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.DecPrecedence, token), index, counter++);
+    public SequentialLexeme Invalid(string token, int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.Invalid, token), index, counter++);
 
-    public Lexeme FromLexeme(in Lexeme based) => new Lexeme (
-        based.ID,
-        based.token,
-        based.index,
+    // TODO: Consider removing a method like this in exchange for making the Sequence field mutable.
+    public SequentialLexeme ChangeSequence(in SequentialLexeme based) => new SequentialLexeme (
+        new Lexeme(based.ID, based.Token),
+        based.Index,
         counter++
     );
 }

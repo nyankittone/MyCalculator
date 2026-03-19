@@ -11,14 +11,14 @@ namespace Calculator;
 class Program
 {
     // TODO: Clean up this function's code a little.
-    private static IEnumerable<Lexeme> Desugar(IEnumerable<Lexeme> tokens)
+    private static IEnumerable<SequentialLexeme> Desugar(IEnumerable<Lexeme> tokens)
     {
         LexemeSpawner spawn = new();
         // If we see opening or closing parenthesis, we need to splice in a * operator before/after
         // the symbol if the symbol before/after ultamitely represents a number.
 
-        Lexeme? left = null;
-        foreach (Lexeme right in tokens)
+        SequentialLexeme? left = null;
+        foreach (SequentialLexeme right in tokens)
         {
             // check left parenthesis
             if (right.ID is LexemeID.IncPrecedence && left is not null && left.Value.ID is LexemeID.Number)
@@ -32,7 +32,7 @@ class Program
                 yield return spawn.Operator("*", null);
             }
 
-            yield return spawn.FromLexeme(right);
+            yield return spawn.ChangeSequence(right);
             left = right;
         }
     }
