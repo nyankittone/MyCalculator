@@ -35,14 +35,21 @@ public struct Lexeme
     public LexemeID ID { get; }
     public string token { get; }
     public int? index { get; }
-    public uint seqIndex { get; }
+    public uint? seqIndex { get; }
 
-    internal Lexeme(LexemeID ID, string token, int? index, uint sequence)
+    public Lexeme(LexemeID ID, string token, int? index, uint sequence)
     {
         this.ID = ID;
         this.token = token;
         this.index = index;
         this.seqIndex = sequence;
+    }
+
+    public Lexeme(LexemeID ID, string token) {
+        this.ID = ID;
+        this.token = token;
+        this.index = null;
+        this.seqIndex = null;
     }
 
     public override string ToString()

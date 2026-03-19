@@ -234,7 +234,6 @@ public static class Parser
             stuff.Errors.Add(stuff.ErrorMaker.MakeException("Unclosed parenthesis", checkLexeme.Lexeme.Value));
         }
 
-        // TODO: Handle more null cases here, as there are now WAYYYYYYY more possibilities.
         mid = Merge(mid, right, oldMultOperator);
         return (left, mid, oldAddOperator) switch
         {

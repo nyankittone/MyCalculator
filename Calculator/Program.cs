@@ -43,7 +43,8 @@ class Program
 
         foreach (string arg in args)
         {
-            switch(arg) {
+            switch (arg)
+            {
                 case "--print-lexemes":
                     printLexemes = true;
                     break;
@@ -107,8 +108,10 @@ class Program
                     return true;
                 });
 
-                // TODO: Place this somewhere better
-                if(printExceptions) {
+                // TODO: Make so this check doesn't have to run each time a parser error happened
+                // with exception printing turned on.
+                if (printExceptions)
+                {
                     Console.Error.WriteLine(".NET error:\r\n{0}", ae);
                 }
             }
