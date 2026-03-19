@@ -106,9 +106,9 @@ public class LexemeSpawner {
         new SequentialLexeme(new Lexeme(LexemeID.Invalid, token), index, counter++);
 
     // TODO: Consider removing a method like this in exchange for making the Sequence field mutable.
-    public SequentialLexeme ChangeSequence(in SequentialLexeme based) => new SequentialLexeme (
+    public SequentialLexeme ChangeSequence(in ILexeme based) => new SequentialLexeme (
         new Lexeme(based.ID, based.Token),
-        based.Index,
+        based is SequentialLexeme bruh ? bruh.Index : null, // performance?
         counter++
     );
 }

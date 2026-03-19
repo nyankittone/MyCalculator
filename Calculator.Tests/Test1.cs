@@ -10,6 +10,13 @@ static class L
     public static Lexeme Exp = new Lexeme(LexemeID.Exponent, "**");
     public static Lexeme Open = new Lexeme(LexemeID.IncPrecedence, "(");
     public static Lexeme Close = new Lexeme(LexemeID.DecPrecedence, ")");
+
+    public static Lexeme Num(string n) => new Lexeme(LexemeID.Number, n);
+    public static SequentialLexeme[] Seq(ILexeme[] input) {
+        LexemeSpawner spawn = new();
+        IEnumerable<SequentialLexeme> thing = from item in input select spawn.ChangeSequence(item);
+        return thing.ToArray();
+    }
 }
 
 [TestClass]
@@ -37,7 +44,7 @@ public sealed class ParserTests
     [TestMethod]
     public void SixSeven()
     {
-        Lexeme[] input = { Lexeme.Number("67") };
+        SequentialLexeme[] input = L.Seq([ L.Num("67") ]);
         IExpression result = Parser.Parse(input);
         Assert.AreEqual(LexemeID.Number, result.ID);
         Assert.AreEqual(67, result.Evaluate());
