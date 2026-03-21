@@ -17,6 +17,11 @@ static class L
         IEnumerable<SequentialLexeme> thing = from item in input select spawn.ChangeSequence(item);
         return thing.ToArray();
     }
+
+    public static ParserExceptionFactory GimmeFactory(IEnumerable<SequentialLexeme> stream) {
+        string inferredString = String.Join(" ", stream);
+        return new ParserExceptionFactory(inferredString);
+    }
 }
 
 [TestClass]
@@ -45,8 +50,9 @@ public sealed class ParserTests
     public void SixSeven()
     {
         SequentialLexeme[] input = L.Seq([ L.Num("67") ]);
-        IExpression result = Parser.Parse(input);
-        Assert.AreEqual(LexemeID.Number, result.ID);
+        IExpression? result = Parser.Parse(input, L.GimmeFactory(input));
+        Assert.IsNotNull(result);
+        Assert.AreEqual(LexemeID.Number, (result!).ID);
         Assert.AreEqual(67, result.Evaluate());
     }
 
