@@ -112,10 +112,11 @@ public sealed class ParserTests
     [TestMethod]
     public void AddAndMult()
     {
-        IExpression result = Parser.Parse([L.Num("5"), L.Add, L.Num("5"), L.Mult, L.Num("2")]);
-        Assert.AreEqual(LexemeID.Add, result.ID);
+        var input = L.Seq([L.Num("5"), L.Add, L.Num("5"), L.Mult, L.Num("2")]);
+        IExpression? result = Parser.Parse(input, L.GimmeFactory(input));
+        AssertExpr(result, LexemeID.Add);
 
-        IExpression[] children = result.Children().ToArray();
+        IExpression[] children = (result!).Children().ToArray();
         Assert.HasCount(2, children);
         Assert.AreEqual(LexemeID.Number, children[0].ID);
         Assert.AreEqual(5, children[0].Evaluate());
@@ -125,10 +126,11 @@ public sealed class ParserTests
     [TestMethod]
     public void ReorderedAddAndMult()
     {
-        IExpression result = Parser.Parse([L.Open, L.Num("5"), L.Add, L.Num("5"), L.Close, L.Mult, L.Num("2")]);
-        Assert.AreEqual(LexemeID.Multiply, result.ID);
+        var input = L.Seq([L.Open, L.Num("5"), L.Add, L.Num("5"), L.Close, L.Mult, L.Num("2")]);
+        IExpression? result = Parser.Parse(input, L.GimmeFactory(input));
+        AssertExpr(result, LexemeID.Multiply);
 
-        IExpression[] children = result.Children().ToArray();
+        IExpression[] children = (result!).Children().ToArray();
         Assert.HasCount(2, children);
 
         AssertSimpleTree(children[0], 5, LexemeID.Add, 5);
@@ -140,7 +142,7 @@ public sealed class ParserTests
     [TestMethod]
     public void ManyAdds()
     {
-        IExpression result = Parser.Parse([
+        var input = L.Seq([
             L.Num("1"),
             L.Add,
             L.Num("2"),
@@ -157,8 +159,10 @@ public sealed class ParserTests
             L.Add,
             L.Num("8")]);
 
-        Assert.AreEqual(LexemeID.Add, result.ID);
-        IExpression node = result;
+        IExpression? result = Parser.Parse(input, L.GimmeFactory(input));
+        AssertExpr(result, LexemeID.Add);
+
+        IExpression node = result!;
         foreach (var expectedRight in new decimal[] { 8, 7, 6, 5, 4, 3 })
         {
             IExpression[] children = node.Children().ToArray();
@@ -175,9 +179,11 @@ public sealed class ParserTests
     [TestMethod]
     public void ExponentsHeckYeah()
     {
-        IExpression node = Parser.Parse([L.Num("12"), L.Sub, L.Num("3"), L.Mult, L.Num("3"), L.Exp, L.Num("2")]);
+        var input = L.Seq([L.Num("12"), L.Sub, L.Num("3"), L.Mult, L.Num("3"), L.Exp, L.Num("2")]);
+        IExpression? result = Parser.Parse(input, L.GimmeFactory(input));
+        AssertExpr(result, LexemeID.Subtract);
+        var node = result!;
 
-        Assert.AreEqual(LexemeID.Subtract, node.ID);
         {
             IExpression[] children = node.Children().ToArray();
             Assert.HasCount(2, children);
@@ -201,9 +207,11 @@ public sealed class ParserTests
     [TestMethod]
     public void MultDivMult()
     {
-        IExpression node = Parser.Parse([L.Num("6"), L.Mult, L.Num("6"), L.Div, L.Num("6"), L.Mult, L.Num("6")]);
+        var input = L.Seq([L.Num("6"), L.Mult, L.Num("6"), L.Div, L.Num("6"), L.Mult, L.Num("6")]);
+        IExpression? result = Parser.Parse(input, L.GimmeFactory(input));
+        AssertExpr(result, LexemeID.Multiply);
+        var node = result!;
 
-        Assert.AreEqual(LexemeID.Multiply, node.ID);
         {
             IExpression[] children = node.Children().ToArray();
             Assert.HasCount(2, children);
@@ -237,9 +245,9 @@ public sealed class LexerTests
         }
     }
 
-    private void DidItTwoPlusTwo(Lexeme[] testOn)
+    private void DidItTwoPlusTwo(SequentialLexeme[] testOn)
     {
-        AssertArraysEqual(testOn, [L.Num("2"), L.Add, L.Num("2")]);
+        AssertArraysEqual(testOn, L.Seq([L.Num("2"), L.Add, L.Num("2")]));
     }
 
     [TestMethod]
@@ -274,42 +282,42 @@ public sealed class LexerTests
     public void TwoPlusPositiveTwo()
     {
         var result = Lexer.Lex("2++2").ToArray();
-        AssertArraysEqual(result, [L.Num("2"), L.Add, L.Num("+2")]);
+        AssertArraysEqual(result, L.Seq([L.Num("2"), L.Add, L.Num("+2")]));
     }
 
     [TestMethod]
     public void BrokenTwoPlusPositiveTwo()
     {
         var result = Lexer.Lex("2 ++ 2").ToArray();
-        AssertArraysEqual(result, [L.Num("2"), L.Add, L.Add, L.Num("2")]);
+        AssertArraysEqual(result, L.Seq([L.Num("2"), L.Add, L.Add, L.Num("2")]));
     }
 
     [TestMethod]
     public void SubtractThing()
     {
         var result = Lexer.Lex("69-420").ToArray();
-        AssertArraysEqual(result, [L.Num("69"), L.Sub, L.Num("420")]);
+        AssertArraysEqual(result, L.Seq([L.Num("69"), L.Sub, L.Num("420")]));
     }
 
     [TestMethod]
     public void DoubleSubtractThing()
     {
         var result = Lexer.Lex("69--420").ToArray();
-        AssertArraysEqual(result, [L.Num("69"), L.Sub, L.Num("-420")]);
+        AssertArraysEqual(result, L.Seq([L.Num("69"), L.Sub, L.Num("-420")]));
     }
 
     [TestMethod]
     public void BrokenDoubleSubtractThing()
     {
         var result = Lexer.Lex("69 -- 420").ToArray();
-        AssertArraysEqual(result, [L.Num("69"), L.Sub, L.Sub, L.Num("420")]);
+        AssertArraysEqual(result, L.Seq([L.Num("69"), L.Sub, L.Sub, L.Num("420")]));
     }
 
     [TestMethod]
     public void OperatorSpam()
     {
         var result = Lexer.Lex("+*-///---+-+-/*+**-/+").ToArray();
-        Lexeme[] expected = {
+        var expected = L.Seq([
             L.Add,
             L.Mult,
             L.Sub,
@@ -330,7 +338,7 @@ public sealed class LexerTests
             L.Sub,
             L.Div,
             L.Add,
-        };
+        ]);
 
         AssertArraysEqual(result, expected);
     }
@@ -339,7 +347,7 @@ public sealed class LexerTests
     public void LongBar()
     {
         var result = Lexer.Lex("8------------3").ToArray();
-        AssertArraysEqual(result, [
+        AssertArraysEqual(result, L.Seq([
             L.Num("8"),
             L.Sub,
             L.Sub,
@@ -353,21 +361,21 @@ public sealed class LexerTests
             L.Sub,
             L.Sub,
             L.Num("-3"),
-        ]);
+        ]));
     }
 
     [TestMethod]
     public void Stars()
     {
         var result = Lexer.Lex("***********").ToArray();
-        AssertArraysEqual(result, [L.Exp, L.Exp, L.Exp, L.Exp, L.Exp, L.Mult]);
+        AssertArraysEqual(result, L.Seq([L.Exp, L.Exp, L.Exp, L.Exp, L.Exp, L.Mult]));
     }
 
     [TestMethod]
     public void ParenthesisSpam()
     {
         var result = Lexer.Lex("89(((-7)(+6))))(-4-4(()+67()-69").ToArray();
-        AssertArraysEqual(result, [
+        AssertArraysEqual(result, L.Seq([
             L.Num("89"),
             L.Open,
             L.Open,
@@ -393,7 +401,7 @@ public sealed class LexerTests
             L.Close,
             L.Sub,
             L.Num("69"),
-        ]);
+        ]));
     }
 }
 
