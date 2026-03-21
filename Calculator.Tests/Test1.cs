@@ -236,12 +236,14 @@ public sealed class ParserTests
 [TestClass]
 public sealed class LexerTests
 {
-    private void AssertArraysEqual<T>(T[] result, T[] expected)
+    private void AssertArraysEqual<T>(T[] result, T[] expected) where T : ILexeme
     {
         Assert.HasCount(expected.Length, result);
         for (int i = 0; i < result.Length; i++)
         {
-            Assert.AreEqual(result[i], expected[i]);
+            if(expected[i].ID != result[i].ID || expected[i].Token != result[i].Token) {
+                throw new AssertFailedException($"Lexemes mismatch. Expected {expected[i]}, got {result[i]}");
+            }
         }
     }
 
