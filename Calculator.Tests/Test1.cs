@@ -27,6 +27,17 @@ static class L
 [TestClass]
 public sealed class ParserTests
 {
+    private void AssertExpr(IExpression? expression, LexemeID id) 
+    {
+        Assert.IsNotNull(expression);
+        Assert.AreEqual(id, (expression!).ID);
+    }
+
+    private void AssertNumber(IExpression? expression, in decimal number) {
+        AssertExpr(expression, LexemeID.Number);
+        Assert.AreEqual(number, (expression!).Evaluate());
+    }
+
     private void AssertSimpleTree (
         IExpression expr, decimal expectedLeft, LexemeID expectedOperator, decimal expectedRight
     ) {
@@ -34,10 +45,8 @@ public sealed class ParserTests
         IExpression[] children = expr.Children().ToArray();
         Assert.HasCount(2, children);
 
-        Assert.AreEqual(LexemeID.Number, children[0].ID);
-        Assert.AreEqual(expectedLeft, children[0].Evaluate());
-        Assert.AreEqual(LexemeID.Number, children[1].ID);
-        Assert.AreEqual(expectedRight, children[1].Evaluate());
+        AssertNumber(children[0], expectedLeft);
+        AssertNumber(children[1], expectedRight);
     }
 
     // We are getting the internal details of each tree with a few methods and properties defined 
@@ -53,7 +62,7 @@ public sealed class ParserTests
         IExpression? result = Parser.Parse(input, L.GimmeFactory(input));
         Assert.IsNotNull(result);
         Assert.AreEqual(LexemeID.Number, (result!).ID);
-        Assert.AreEqual(67, result.Evaluate());
+        Assert.AreEqual(67, (result!).Evaluate());
     }
 
     [TestMethod]
