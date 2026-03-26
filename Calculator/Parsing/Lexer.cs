@@ -57,7 +57,7 @@ public struct SequentialLexeme : ILexeme
     public int? Index { get; }
     public uint SeqIndex { get; }
 
-    internal SequentialLexeme(Lexeme lexeme, int? index, uint sequence)
+    public SequentialLexeme(Lexeme lexeme, int? index, uint sequence)
     {
         this.inside = lexeme;
         this.Index = index;

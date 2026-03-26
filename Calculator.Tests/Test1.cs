@@ -11,11 +11,20 @@ static class L
     public static Lexeme Open = new Lexeme(LexemeID.IncPrecedence, "(");
     public static Lexeme Close = new Lexeme(LexemeID.DecPrecedence, ")");
 
+    public static Lexeme Inval(string stuff) => new Lexeme(LexemeID.Invalid, stuff);
     public static Lexeme Num(string n) => new Lexeme(LexemeID.Number, n);
+
+    // TODO: Fix this code so that the lexemes spat out have fake indices for them
     public static SequentialLexeme[] Seq(ILexeme[] input)
     {
         LexemeSpawner spawn = new();
-        IEnumerable<SequentialLexeme> thing = from item in input select spawn.ChangeSequence(item);
+        // IEnumerable<SequentialLexeme> thing = from item in input select spawn.ChangeSequence(item);
+        int index = 0;
+        IEnumerable<SequentialLexeme> thing = input.Select((item, i) => {
+            int oldIndex = index;
+            index += item.Token.Length + 1;
+            return new SequentialLexeme(new Lexeme(item.ID, item.Token), oldIndex, (uint)i);
+        });
         return thing.ToArray();
     }
 
@@ -230,6 +239,42 @@ public sealed class ParserTests
         }
 
         AssertSimpleTree(node, 6, LexemeID.Multiply, 6);
+    }
+
+    // TODO: Consider adding error IDs to the ParserExceptions. That way we can assert against those
+    // instead of the message text.
+    [TestMethod]
+    public void ErrorBadOperator() {
+        var input = L.Seq([L.Num("9"), L.Inval(";KJ:J;jh;lkjH"), L.Num("10")]);
+        try {
+            Parser.Parse(input, L.GimmeFactory(input));
+        } catch(Exception e) {
+            Assert.IsInstanceOfType<AggregateException>(e);
+            var es = ((AggregateException)e).InnerExceptions;
+            
+            Assert.HasCount(1, es);
+            Assert.AreEqual("at index 3: Expected operator, got Invalid", es[0].Message);
+            return;
+        }
+
+        Assert.Fail("Expected parser exception, ran sucessfully instead");
+    }
+
+    [TestMethod]
+    public void ErrorBadOperand() {
+        var input = L.Seq([L.Num("9"), L.Add, L.Inval("'''''''''''gthyj,."), L.Add, L.Num("10")]);
+        try {
+            Parser.Parse(input, L.GimmeFactory(input));
+        } catch(Exception e) {
+            Assert.IsInstanceOfType<AggregateException>(e);
+            var es = ((AggregateException)e).InnerExceptions;
+            
+            Assert.HasCount(1, es);
+            Assert.AreEqual("at index 5: Expected number or opening parenthesis, got Invalid", es[0].Message);
+            return;
+        }
+
+        Assert.Fail("Expected parser exception, ran sucessfully instead");
     }
 }
 
