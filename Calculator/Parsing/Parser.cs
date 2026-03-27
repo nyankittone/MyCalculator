@@ -194,7 +194,6 @@ public static class Parser
     }
 
     private static bool FindValidOperator (
-        ref SequentialLexeme first,
         IEnumerator<SequentialLexeme> tokens,
         ref ParserStuff stuff,
         Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext
@@ -241,11 +240,18 @@ public static class Parser
         while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
         {
             SequentialLexeme op = tokens.Current;
-            if (op.ID == LexemeID.Invalid || op.ID == LexemeID.None || op.ID == LexemeID.DecPrecedence)
+            if (!op.IsOperator())
             {
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExpectedOperator, op));
                 continue;
             }
+
+            // idfk anymore,,,
+            // We want to make it so that detecting the operator will stop if we encounter any
+            // number of garbage lexemes,
+            // followed by a number or opening parenthesis. This will require on the case of this
+            // sequence of lexemes occuring, that we skip finding the next operand, since we already
+            // know the next operand.
 
             if (FindValidOperand(tokens, ref stuff, tryNext))
             {
