@@ -5,7 +5,8 @@ namespace Calculator;
 // TODO: Add ErrorID field to ParserException and BasicParserException, and have the Message field
 // get computed based on that ID
 
-public enum ParserErrorID {
+public enum ParserErrorID
+{
     ExpectedNumber,
     ExpectedOperator,
     EmptyParenthesis,
@@ -15,15 +16,52 @@ public enum ParserErrorID {
     Other,
 }
 
-public class ParserException(string commandLine, string message, int index, int length) : Exception
+public static class ParserErrorIDExt {
+    public static string MakeMessage(this ParserErrorID ID, ref SequentialLexeme? lexeme) => (ID, lexeme) switch {
+        (ParserErrorID.ExpectedNumber, null) => "Expected number or open parenthesis",
+        (ParserErrorID.ExpectedNumber, SequentialLexeme l) => $"Expected number or open parenthesis, got {l.ID}",
+        (ParserErrorID.ExpectedOperator, null) => "Expected operator",
+        (ParserErrorID.ExpectedOperator, SequentialLexeme l) => $"Expected operator, got {l.ID}",
+        (ParserErrorID.EmptyParenthesis, _) => "Empty parenthesis",
+        (ParserErrorID.UnbalancedOperator, SequentialLexeme l) => $"Unbalanced operator \"{l.ID}\"",
+        (ParserErrorID.UnbalancedOperator, _) => "Unbalanced operator",
+        (ParserErrorID.UnclosedParenthesis, _) => "Unclosed parenthesis",
+        (ParserErrorID.InvalidOperator, SequentialLexeme l) => $"Invalid operator \"{l.Token}\"",
+        (ParserErrorID.InvalidOperator, _) => "Invalid operator",
+        _ => "Unknown error type",
+    };
+}
+
+public class ParserException(string commandLine, SequentialLexeme? lexeme, ParserErrorID id) : Exception
 {
-    private string internalMessage = message;
+    public ParserErrorID ID { get; } = id;
+    private SequentialLexeme? lexeme = lexeme;
     public string CommandLine { get; } = commandLine;
-    public int Index { get; } = index;
-    public int Length { get; } = length;
+    public int? Index
+    {
+        get => lexeme switch
+        {
+            SequentialLexeme lex => lex.Index,
+            null => null,
+        };
+    }
+    public int? Length
+    {
+        get => lexeme switch
+        {
+            SequentialLexeme lexx => lexx.Token.Length,
+            null => null,
+        };
+    }
     public override string Message
     {
-        get => $"at index {Index}: {internalMessage}";
+        get {
+            string messagePart = ID.MakeMessage(ref lexeme);
+            return lexeme switch {
+                SequentialLexeme l => $"at index {l.Index}: {messagePart}",
+                null => $"at index <unknown>: {messagePart}",
+            };
+        }
     }
 }
 
