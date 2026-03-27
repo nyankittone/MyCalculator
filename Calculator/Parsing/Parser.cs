@@ -310,9 +310,13 @@ public static class Parser
                     continue;
             }
 
+            int oldErrorCount = stuff.Errors.Count;
             if (FindValidOperand(tokens, ref stuff, tryNext))
             {
-                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnbalancedOperator, op.Value));
+                if (oldErrorCount == stuff.Errors.Count)
+                {
+                    stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnbalancedOperator, op.Value));
+                }
                 continue;
             }
 
