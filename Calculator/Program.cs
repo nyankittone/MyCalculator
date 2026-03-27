@@ -91,17 +91,15 @@ class Program
                     if (error is ParserException parserError)
                     {
                         Console.Error.WriteLine(parserError.Message);
+                        if(parserError.Index is int idx && parserError.Length is int len) {
+                            Console.Error.WriteLine(
+                                "  \x1b[1m{0}\x1b[m\r\n  {1}\x1b[1;91m^{2}\x1b[m",
+                                line,
+                                new string(' ', idx),
+                                new string('~', len - 1)
+                            );
+                        }
 
-                        Console.Error.WriteLine(
-                            "  \x1b[1m{0}\x1b[m\r\n  {1}\x1b[1;91m^{2}\x1b[m",
-                            line,
-                            new string(' ', parserError.Index),
-                            new string('~', parserError.Length - 1)
-                        );
-                    }
-                    else if (error is BasicParserException _)
-                    {
-                        Console.Error.WriteLine(error.Message);
                     }
 
                     Console.Error.WriteLine();

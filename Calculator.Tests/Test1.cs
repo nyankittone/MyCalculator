@@ -251,9 +251,11 @@ public sealed class ParserTests
         } catch(Exception e) {
             Assert.IsInstanceOfType<AggregateException>(e);
             var es = ((AggregateException)e).InnerExceptions;
-            
+
             Assert.HasCount(1, es);
-            Assert.AreEqual("at index 3: Expected operator, got Invalid", es[0].Message);
+            Assert.IsInstanceOfType<ParserException>(es[0]);
+            var pe = ((ParserException)es[0]);
+            Assert.AreEqual(ParserErrorID.ExpectedOperator, pe.ID);
             return;
         }
 
@@ -268,9 +270,11 @@ public sealed class ParserTests
         } catch(Exception e) {
             Assert.IsInstanceOfType<AggregateException>(e);
             var es = ((AggregateException)e).InnerExceptions;
-            
+
             Assert.HasCount(1, es);
-            Assert.AreEqual("at index 5: Expected number or opening parenthesis, got Invalid", es[0].Message);
+            Assert.IsInstanceOfType<ParserException>(es[0]);
+            var pe = ((ParserException)es[0]);
+            Assert.AreEqual(ParserErrorID.ExpectedNumber, pe.ID);
             return;
         }
 
