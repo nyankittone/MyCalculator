@@ -1,12 +1,5 @@
 /home/tiffany/Programming/Calculator/Calculator.Tests/bin/Debug/net10.0/.msCoverageExtensionSourceRootsMapping_Calculator.Tests
 /home/tiffany/Programming/Calculator/Calculator.Tests/bin/Debug/net10.0/.msCoverageSourceRootsMapping_Calculator.Tests
-/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.csproj.AssemblyReference.cache
-/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.GeneratedMSBuildEditorConfig.editorconfig
-/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.gentestingplatformentrypointinputcache.cache
-/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.genautoregisteredextensionsinputcache.cache
-/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.AssemblyInfoInputs.cache
-/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.AssemblyInfo.cs
-/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.csproj.CoreCompileInputs.cache
 /home/tiffany/Programming/Calculator/Calculator.Tests/bin/Debug/net10.0/Microsoft.TestPlatform.AdapterUtilities.dll
 /home/tiffany/Programming/Calculator/Calculator.Tests/bin/Debug/net10.0/Calculator.deps.json
 /home/tiffany/Programming/Calculator/Calculator.Tests/bin/Debug/net10.0/Calculator.runtimeconfig.json
@@ -265,6 +258,13 @@
 /home/tiffany/Programming/Calculator/Calculator.Tests/bin/Debug/net10.0/MSTest.TestFramework.Extensions.dll
 /home/tiffany/Programming/Calculator/Calculator.Tests/bin/Debug/net10.0/Calculator.pdb
 /home/tiffany/Programming/Calculator/Calculator.Tests/bin/Debug/net10.0/MSTest.TestFramework.Extensions.xml
+/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.csproj.AssemblyReference.cache
+/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.GeneratedMSBuildEditorConfig.editorconfig
+/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.gentestingplatformentrypointinputcache.cache
+/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.genautoregisteredextensionsinputcache.cache
+/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.AssemblyInfoInputs.cache
+/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.AssemblyInfo.cs
+/home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.csproj.CoreCompileInputs.cache
 /home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculat.ED495408.Up2Date
 /home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/Calculator.Tests.dll
 /home/tiffany/Programming/Calculator/Calculator.Tests/obj/Debug/net10.0/refint/Calculator.Tests.dll

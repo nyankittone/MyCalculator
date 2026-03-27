@@ -17,8 +17,10 @@ public enum ParserErrorID
     Other,
 }
 
-public static class ParserErrorIDExt {
-    public static string MakeMessage(this ParserErrorID ID, ref SequentialLexeme? lexeme) => (ID, lexeme) switch {
+public static class ParserErrorIDExt
+{
+    public static string MakeMessage(this ParserErrorID ID, ref SequentialLexeme? lexeme) => (ID, lexeme) switch
+    {
         (ParserErrorID.ExpectedNumber, null) => "Expected number or open parenthesis",
         (ParserErrorID.ExpectedNumber, SequentialLexeme l) => $"Expected number or open parenthesis, got {l.ID}",
         (ParserErrorID.ExpectedOperator, null) => "Expected operator",
@@ -57,10 +59,13 @@ public class ParserException(string commandLine, SequentialLexeme? lexeme, Parse
     }
     public override string Message
     {
-        get {
+        get
+        {
             string messagePart = ID.MakeMessage(ref lexeme);
-            return lexeme switch {
-                SequentialLexeme l => l.Index switch {
+            return lexeme switch
+            {
+                SequentialLexeme l => l.Index switch
+                {
                     int idx => $"at index {idx + 1}: {messagePart}",
                     _ => $"at index <unknown>: {messagePart}",
                 },
@@ -142,7 +147,8 @@ public static class Parser
             }, depth + 1) : new Number(tokens.Current.Token);
     }
 
-    private static IExpression? TryParseNumber(IEnumerator<SequentialLexeme> tokens, ref ParserStuff stuff, uint depth) {
+    private static IExpression? TryParseNumber(IEnumerator<SequentialLexeme> tokens, ref ParserStuff stuff, uint depth)
+    {
         SequentialLexeme openParenthLexeme = tokens.Current;
         IExpression? returned = MaybeRecurse(tokens, ref stuff, depth);
         if (returned is null)
@@ -181,8 +187,9 @@ public static class Parser
                 continue;
             }
 
-            // What do we do if the lexeme is not either an operator or a invalid? guhhhh
-            if(lexeme.ID == LexemeID.DecPrecedence) {
+            if (lexeme.ID == LexemeID.DecPrecedence)
+            {
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExpectedNumber, lexeme));
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExtraParenthesisClose, lexeme));
                 wasInvalid = true;
                 continue;
@@ -208,34 +215,46 @@ public static class Parser
     }
 
     // I hate this type
-    private enum FindOperatorReturn {
+    private enum FindOperatorReturn
+    {
         CurrentIsNumber,
         CurrentIsOperator,
         OutOfLexemes,
     }
 
-    private static FindOperatorReturn FindValidOperator (
+    private static FindOperatorReturn FindValidOperator(
         IEnumerator<SequentialLexeme> tokens,
         ref ParserStuff stuff,
         Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext
-    ) {
-        SequentialLexeme op = tokens.Current;
-        if (!op.IsOperator())
+    )
+    {
+        SequentialLexeme lexeme = tokens.Current;
+        if (!lexeme.IsOperator())
         {
-            stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExpectedOperator, op));
+            stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExpectedOperator, lexeme));
+            if (lexeme.ID == LexemeID.DecPrecedence)
+            {
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExtraParenthesisClose, lexeme));
+            }
 
-            while(tryNext(tokens).Lexeme.HasValue) {
-                SequentialLexeme lexeme = tokens.Current;
-                if(lexeme.ID == LexemeID.Number || lexeme.ID == LexemeID.IncPrecedence) {
+            while (tryNext(tokens).Lexeme.HasValue)
+            {
+                lexeme = tokens.Current;
+                if (lexeme.ID == LexemeID.Number || lexeme.ID == LexemeID.IncPrecedence)
+                {
                     return FindOperatorReturn.CurrentIsNumber;
                 }
 
-                if(lexeme.IsOperator()) {
+                if (lexeme.IsOperator())
+                {
                     return FindOperatorReturn.CurrentIsOperator;
                 }
 
-                // Consider adding special error for closing parenthesis
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExpectedOperator, lexeme));
+                if (lexeme.ID == LexemeID.DecPrecedence)
+                {
+                    stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExtraParenthesisClose, lexeme));
+                }
             }
 
             // we are here if we run out of lexemes to chew through
@@ -263,17 +282,9 @@ public static class Parser
         // This right here is the first token to actually make any sense. Ensure that it's
         // either a number or some expression surrounded by parenthesis, and if so, if the
         // parenthesis contain anything.
+        if (TryParseNumber(tokens, ref stuff, depth) is IExpression resolved)
         {
-            SequentialLexeme firstLexeme = tokens.Current;
-
-            if (MaybeRecurse(tokens, ref stuff, depth) is IExpression resolved)
-            {
-                right = resolved;
-            }
-            else if (tokens.Current.SeqIndex - firstLexeme.SeqIndex < 2)
-            {
-                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.EmptyParenthesis, firstLexeme));
-            }
+            right = resolved;
         }
 
         EndTestResult checkLexeme = EndTestResult.Nah(); // just initialize with *something* idfk
@@ -281,16 +292,14 @@ public static class Parser
         // read two tokens at a time, first one should be an operator, second should be a number
         while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
         {
-
-            // idfk anymore,,,
             // We want to make it so that detecting the operator will stop if we encounter any
             // number of garbage lexemes, followed by a number or opening parenthesis. This will
             // require on the case of this sequence of lexemes occuring, that we skip finding the
             // next operand, since we already know the next operand, as well as skipping switching
             // on the operator, since we know it's invalid.
-
             SequentialLexeme? op = null;
-            switch(FindValidOperator(tokens, ref stuff, tryNext)) {
+            switch (FindValidOperator(tokens, ref stuff, tryNext))
+            {
                 case FindOperatorReturn.CurrentIsOperator:
                     op = tokens.Current;
                     break;
@@ -307,15 +316,7 @@ public static class Parser
                 continue;
             }
 
-            SequentialLexeme openParenthLexeme = tokens.Current;
-            IExpression? operand = MaybeRecurse(tokens, ref stuff, depth);
-            if (operand is null)
-            {
-                if (tokens.Current.SeqIndex - openParenthLexeme.SeqIndex < 2)
-                {
-                    stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.EmptyParenthesis, openParenthLexeme));
-                }
-            }
+            IExpression? operand = TryParseNumber(tokens, ref stuff, depth);
 
             switch (op.Value.ID)
             {
