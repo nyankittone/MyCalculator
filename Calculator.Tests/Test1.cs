@@ -344,6 +344,50 @@ public sealed class ParserTests
 
         Assert.Fail("Expected parser exception, ran sucessfully instead");
     }
+
+    public static IEnumerable<(SequentialLexeme[], int[])> UnclosedParenthesis1 => [
+        (L.Seq([L.Close]), [0]),
+        (L.Seq([L.Close, L.Close, L.Close]), [0, 2, 4]),
+        (L.Seq([L.Num("5"), L.Add, L.Close, L.Sub, L.Num("3")]), [4]),
+        (L.Seq([L.Num("5"), L.Add, L.Close, L.Close, L.Close, L.Sub, L.Num("3")]), [4, 6, 8]),
+        (L.Seq([L.Num("10"), L.Add, L.Close]), [5]),
+        (L.Seq([L.Close, L.Add, L.Num("10")]), [0]),
+    ];
+
+    [TestMethod]
+    [DynamicData(nameof(UnclosedParenthesis1))]
+    public void TestUnclosedParenthesis1((SequentialLexeme[], int[]) input) {
+        SequentialLexeme[] inputSequence = input.Item1;
+        int[] indices = input.Item2;
+
+        try
+        {
+            Parser.Parse(inputSequence, L.GimmeFactory(inputSequence));
+        }
+        catch (Exception e)
+        {
+            Assert.IsInstanceOfType<AggregateException>(e);
+            var es = ((AggregateException)e).InnerExceptions;
+
+            Assert.HasCount(indices.Length * 2, es);
+            for (int i = 0; i < indices.Length; i++)
+            {
+                Assert.IsInstanceOfType<ParserException>(es[i * 2]);
+                var pe = ((ParserException)es[i * 2]);
+                Assert.AreEqual(ParserErrorID.ExpectedNumber, pe.ID);
+                Assert.AreEqual(indices[i], pe.Index);
+
+                Assert.IsInstanceOfType<ParserException>(es[i * 2 + 1]);
+                var pe2 = ((ParserException)es[i * 2 + 1]);
+                Assert.AreEqual(ParserErrorID.ExtraParenthesisClose, pe2.ID);
+                Assert.AreEqual(indices[i], pe2.Index);
+            }
+
+            return;
+        }
+
+        Assert.Fail("Expected parser exception, ran sucessfully instead");
+    }
 }
 
 [TestClass]
