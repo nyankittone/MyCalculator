@@ -142,6 +142,20 @@ public static class Parser
             }, depth + 1) : new Number(tokens.Current.Token);
     }
 
+    private static IExpression? TryParseNumber(IEnumerator<SequentialLexeme> tokens, ref ParserStuff stuff, uint depth) {
+        SequentialLexeme openParenthLexeme = tokens.Current;
+        IExpression? returned = MaybeRecurse(tokens, ref stuff, depth);
+        if (returned is null)
+        {
+            if (tokens.Current.SeqIndex - openParenthLexeme.SeqIndex < 2)
+            {
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.EmptyParenthesis, openParenthLexeme));
+            }
+        }
+
+        return returned;
+    }
+
     // `true` is returned when we return without consuming the entire iterator, `false` otherwise.
     private static bool FindValidOperand(
         IEnumerator<SequentialLexeme> tokens,
@@ -193,14 +207,42 @@ public static class Parser
         return false;
     }
 
-    private static bool FindValidOperator (
+    // I hate this type
+    private enum FindOperatorReturn {
+        CurrentIsNumber,
+        CurrentIsOperator,
+        OutOfLexemes,
+    }
+
+    private static FindOperatorReturn FindValidOperator (
         IEnumerator<SequentialLexeme> tokens,
         ref ParserStuff stuff,
         Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext
     ) {
+        SequentialLexeme op = tokens.Current;
+        if (!op.IsOperator())
+        {
+            stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExpectedOperator, op));
 
+            while(tryNext(tokens).Lexeme.HasValue) {
+                SequentialLexeme lexeme = tokens.Current;
+                if(lexeme.ID == LexemeID.Number || lexeme.ID == LexemeID.IncPrecedence) {
+                    return FindOperatorReturn.CurrentIsNumber;
+                }
 
-        return false;
+                if(lexeme.IsOperator()) {
+                    return FindOperatorReturn.CurrentIsOperator;
+                }
+
+                // Consider adding special error for closing parenthesis
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExpectedOperator, lexeme));
+            }
+
+            // we are here if we run out of lexemes to chew through
+            return FindOperatorReturn.OutOfLexemes;
+        }
+
+        return FindOperatorReturn.CurrentIsOperator;
     }
 
     private static IExpression? ParseRec(
@@ -239,12 +281,6 @@ public static class Parser
         // read two tokens at a time, first one should be an operator, second should be a number
         while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
         {
-            SequentialLexeme op = tokens.Current;
-            if (!op.IsOperator())
-            {
-                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExpectedOperator, op));
-                continue;
-            }
 
             // idfk anymore,,,
             // We want to make it so that detecting the operator will stop if we encounter any
@@ -253,9 +289,21 @@ public static class Parser
             // next operand, since we already know the next operand, as well as skipping switching
             // on the operator, since we know it's invalid.
 
+            SequentialLexeme? op = null;
+            switch(FindValidOperator(tokens, ref stuff, tryNext)) {
+                case FindOperatorReturn.CurrentIsOperator:
+                    op = tokens.Current;
+                    break;
+                case FindOperatorReturn.CurrentIsNumber:
+                    TryParseNumber(tokens, ref stuff, depth);
+                    continue;
+                case FindOperatorReturn.OutOfLexemes:
+                    continue;
+            }
+
             if (FindValidOperand(tokens, ref stuff, tryNext))
             {
-                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnbalancedOperator, op));
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnbalancedOperator, op.Value));
                 continue;
             }
 
@@ -269,7 +317,7 @@ public static class Parser
                 }
             }
 
-            switch (op.ID)
+            switch (op.Value.ID)
             {
                 case LexemeID.Exponent:
                     if (operand is IExpression _ && right is IExpression _)
@@ -280,7 +328,7 @@ public static class Parser
                 case LexemeID.Multiply:
                 case LexemeID.Divide:
                     mid = Merge(mid, right, oldMultOperator);
-                    oldMultOperator = op.ID; // these two lines might have to be inside the above if
+                    oldMultOperator = op.Value.ID; // these two lines might have to be inside the above if
                     right = operand;
                     break;
                 case LexemeID.Add:
@@ -289,11 +337,11 @@ public static class Parser
                     right = operand;
                     oldMultOperator = null;
                     left = Merge(left, mid, oldAddOperator);
-                    oldAddOperator = op.ID;
+                    oldAddOperator = op.Value.ID;
                     mid = null;
                     break;
                 default:
-                    stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.InvalidOperator, op));
+                    stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.InvalidOperator, op.Value));
                     break;
             }
         }
