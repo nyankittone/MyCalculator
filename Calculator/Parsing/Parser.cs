@@ -12,6 +12,7 @@ public enum ParserErrorID
     EmptyParenthesis,
     UnbalancedOperator,
     UnclosedParenthesis,
+    ExtraParenthesisClose,
     InvalidOperator,
     Other,
 }
@@ -28,6 +29,7 @@ public static class ParserErrorIDExt {
         (ParserErrorID.UnclosedParenthesis, _) => "Unclosed parenthesis",
         (ParserErrorID.InvalidOperator, SequentialLexeme l) => $"Invalid operator \"{l.Token}\"",
         (ParserErrorID.InvalidOperator, _) => "Invalid operator",
+        (ParserErrorID.ExtraParenthesisClose, _) => "Cannot have a closing parenthesis here",
         _ => "Unknown error type",
     };
 }
@@ -66,11 +68,6 @@ public class ParserException(string commandLine, SequentialLexeme? lexeme, Parse
             };
         }
     }
-}
-
-public class BasicParserException(string message) : Exception
-{
-    public override string Message { get; } = message;
 }
 
 public struct ParserExceptionFactory(string commandLine)
@@ -145,6 +142,7 @@ public static class Parser
             }, depth + 1) : new Number(tokens.Current.Token);
     }
 
+    // `true` is returned when we return without consuming the entire iterator, `false` otherwise.
     private static bool FindValidOperand(
         IEnumerator<SequentialLexeme> tokens,
         ref ParserStuff stuff,
@@ -169,6 +167,13 @@ public static class Parser
                 continue;
             }
 
+            // What do we do if the lexeme is not either an operator or a invalid? guhhhh
+            if(lexeme.ID == LexemeID.DecPrecedence) {
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExtraParenthesisClose, lexeme));
+                wasInvalid = true;
+                continue;
+            }
+
             if (lexeme.IsOperator())
             {
                 if (wasInvalid)
@@ -188,6 +193,16 @@ public static class Parser
         return false;
     }
 
+    private static bool FindValidOperator (
+        ref SequentialLexeme first,
+        IEnumerator<SequentialLexeme> tokens,
+        ref ParserStuff stuff,
+        Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext
+    ) {
+
+
+        return false;
+    }
 
     private static IExpression? ParseRec(
         IEnumerator<SequentialLexeme> tokens,
@@ -226,7 +241,7 @@ public static class Parser
         while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
         {
             SequentialLexeme op = tokens.Current;
-            if (op.ID == LexemeID.Invalid || op.ID == LexemeID.None)
+            if (op.ID == LexemeID.Invalid || op.ID == LexemeID.None || op.ID == LexemeID.DecPrecedence)
             {
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExpectedOperator, op));
                 continue;
@@ -279,8 +294,10 @@ public static class Parser
 
         if (checkLexeme.EndOfStream && depth > 0)
         {
+            Console.Error.WriteLine("MEOWWWWWWWW <3");
             // TODO: Save the beginning lexeme for the open parenthesis for use in these errors
             stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, checkLexeme.Lexeme.Value));
+            Console.Error.WriteLine(":3 <3");
         }
 
         mid = Merge(mid, right, oldMultOperator);
