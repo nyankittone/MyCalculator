@@ -248,10 +248,10 @@ public static class Parser
 
             // idfk anymore,,,
             // We want to make it so that detecting the operator will stop if we encounter any
-            // number of garbage lexemes,
-            // followed by a number or opening parenthesis. This will require on the case of this
-            // sequence of lexemes occuring, that we skip finding the next operand, since we already
-            // know the next operand.
+            // number of garbage lexemes, followed by a number or opening parenthesis. This will
+            // require on the case of this sequence of lexemes occuring, that we skip finding the
+            // next operand, since we already know the next operand, as well as skipping switching
+            // on the operator, since we know it's invalid.
 
             if (FindValidOperand(tokens, ref stuff, tryNext))
             {
