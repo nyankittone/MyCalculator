@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 namespace Calculator;
 
-// Should I feel dirty for using `internal` here?
+// TODO: Add ErrorID field to ParserException and BasicParserException, and have the Message field
+// get computed based on that ID
+
 public class ParserException(string commandLine, string message, int index, int length) : Exception
 {
     private string internalMessage = message;
