@@ -5,6 +5,16 @@ namespace Calculator;
 // TODO: Add ErrorID field to ParserException and BasicParserException, and have the Message field
 // get computed based on that ID
 
+public enum ParserErrorID {
+    ExpectedNumber,
+    ExpectedOperator,
+    EmptyParenthesis,
+    UnbalancedOperator,
+    UnclosedParenthesis,
+    InvalidOperator,
+    Other,
+}
+
 public class ParserException(string commandLine, string message, int index, int length) : Exception
 {
     private string internalMessage = message;
