@@ -20,7 +20,8 @@ static class L
         LexemeSpawner spawn = new();
         // IEnumerable<SequentialLexeme> thing = from item in input select spawn.ChangeSequence(item);
         int index = 0;
-        IEnumerable<SequentialLexeme> thing = input.Select((item, i) => {
+        IEnumerable<SequentialLexeme> thing = input.Select((item, i) =>
+        {
             int oldIndex = index;
             index += item.Token.Length + 1;
             return new SequentialLexeme(new Lexeme(item.ID, item.Token), oldIndex, (uint)i);
@@ -241,14 +242,24 @@ public sealed class ParserTests
         AssertSimpleTree(node, 6, LexemeID.Multiply, 6);
     }
 
+    public static IEnumerable<SequentialLexeme[]> BadOperatorData => [
+        L.Seq([L.Num("9"), L.Inval(";KJ:J;jh;lkjH"), L.Num("10")]),
+        L.Seq([L.Num("9"), L.Inval(";KJ:J;jh;lkjH"), L.Num("10"), L.Sub, L.Num("21")]),
+        L.Seq([L.Num("9"), L.Add, L.Num("10"), L.Inval(";KJ:J;jh;lkjH"), L.Num("21")]),
+    ];
+
     // TODO: Consider adding error IDs to the ParserExceptions. That way we can assert against those
     // instead of the message text.
     [TestMethod]
-    public void ErrorBadOperator() {
-        var input = L.Seq([L.Num("9"), L.Inval(";KJ:J;jh;lkjH"), L.Num("10")]);
-        try {
+    [DynamicData(nameof(BadOperatorData))]
+    public void ErrorBadOperator(SequentialLexeme[] input)
+    {
+        try
+        {
             Parser.Parse(input, L.GimmeFactory(input));
-        } catch(Exception e) {
+        }
+        catch (Exception e)
+        {
             Assert.IsInstanceOfType<AggregateException>(e);
             var es = ((AggregateException)e).InnerExceptions;
 
@@ -262,12 +273,21 @@ public sealed class ParserTests
         Assert.Fail("Expected parser exception, ran sucessfully instead");
     }
 
+    public static IEnumerable<SequentialLexeme[]> BadOperandData => [
+        L.Seq([L.Num("9"), L.Add, L.Inval("'''''''''''gthyj,."), L.Add, L.Num("10")]),
+        L.Seq([L.Num("9"), L.Add, L.Num("10"), L.Mult, L.Inval("'''''''''''gthyj,."), L.Add, L.Num("21")]),
+    ];
+
     [TestMethod]
-    public void ErrorBadOperand() {
-        var input = L.Seq([L.Num("9"), L.Add, L.Inval("'''''''''''gthyj,."), L.Add, L.Num("10")]);
-        try {
+    [DynamicData(nameof(BadOperandData))]
+    public void ErrorBadOperand(SequentialLexeme[] input)
+    {
+        try
+        {
             Parser.Parse(input, L.GimmeFactory(input));
-        } catch(Exception e) {
+        }
+        catch (Exception e)
+        {
             Assert.IsInstanceOfType<AggregateException>(e);
             var es = ((AggregateException)e).InnerExceptions;
 
@@ -290,7 +310,8 @@ public sealed class LexerTests
         Assert.HasCount(expected.Length, result);
         for (int i = 0; i < result.Length; i++)
         {
-            if(expected[i].ID != result[i].ID || expected[i].Token != result[i].Token) {
+            if (expected[i].ID != result[i].ID || expected[i].Token != result[i].Token)
+            {
                 throw new AssertFailedException($"Lexemes mismatch. Expected {expected[i]}, got {result[i]}");
             }
         }
