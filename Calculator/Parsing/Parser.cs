@@ -137,20 +137,20 @@ public static class Parser
         }
     }
 
-    private static IExpression? MaybeRecurse(IEnumerator<SequentialLexeme> tokens, ref ParserStuff stuff, uint depth)
+    private static (IExpression?, bool) MaybeRecurse(IEnumerator<SequentialLexeme> tokens, ref ParserStuff stuff, uint depth)
     {
         return tokens.Current.ID == LexemeID.IncPrecedence ?
             ParseRec(tokens, ref stuff, (tokens) => tokens.MoveNext() switch
             {
                 true => tokens.Current.ID == LexemeID.DecPrecedence ? EndTestResult.Nah() : EndTestResult.Ye(tokens.Current),
                 false => EndTestResult.StreamEnd(),
-            }, depth + 1) : new Number(tokens.Current.Token);
+            }, depth + 1) : (new Number(tokens.Current.Token), false);
     }
 
     private static IExpression? TryParseNumber(IEnumerator<SequentialLexeme> tokens, ref ParserStuff stuff, uint depth)
     {
         SequentialLexeme openParenthLexeme = tokens.Current;
-        IExpression? returned = MaybeRecurse(tokens, ref stuff, depth);
+        (IExpression? returned, bool openParenthReported) = MaybeRecurse(tokens, ref stuff, depth);
         if (returned is null)
         {
             try
@@ -272,7 +272,7 @@ public static class Parser
         return FindOperatorReturn.CurrentIsOperator;
     }
 
-    private static IExpression? ParseRec(
+    private static (IExpression?, bool) ParseRec(
         IEnumerator<SequentialLexeme> tokens,
         ref ParserStuff stuff,
         Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext,
@@ -286,7 +286,7 @@ public static class Parser
 
         if (FindValidOperand(tokens, ref stuff, tryNext))
         {
-            return null;
+            return (null, false);
         }
 
         // This right here is the first token to actually make any sense. Ensure that it's
@@ -372,11 +372,11 @@ public static class Parser
         mid = Merge(mid, right, oldMultOperator);
         return (left, mid, oldAddOperator) switch
         {
-            (null, null, _) => null,
-            (null, _, _) => mid,
-            (_, null, _) => left,
-            (_, _, LexemeID.Add) => new Add(left, mid),
-            (_, _, LexemeID.Subtract) => new Subtract(left, mid),
+            (null, null, _) => (null, false),
+            (null, _, _) => (mid, false),
+            (_, null, _) => (left, false),
+            (_, _, LexemeID.Add) => (new Add(left, mid), false),
+            (_, _, LexemeID.Subtract) => (new Subtract(left, mid), false),
             _ => throw new Exception("meow :3"),
         };
     }
@@ -387,7 +387,7 @@ public static class Parser
 
         using (var enumerator = tokens.GetEnumerator())
         {
-            IExpression? expr = ParseRec(enumerator, ref stuff, (tokens) => tokens.MoveNext() switch
+            (IExpression? expr, _) = ParseRec(enumerator, ref stuff, (tokens) => tokens.MoveNext() switch
             {
                 true => EndTestResult.Ye(tokens.Current),
                 false => EndTestResult.StreamEnd(),
