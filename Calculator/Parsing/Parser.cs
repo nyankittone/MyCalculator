@@ -361,6 +361,8 @@ public static class Parser
             }
         }
 
+        bool openParenthReported = false;
+
         if (checkLexeme.EndOfStream && depth > 0)
         {
             Console.Error.WriteLine("MEOWWWWWWWW <3");
@@ -372,11 +374,11 @@ public static class Parser
         mid = Merge(mid, right, oldMultOperator);
         return (left, mid, oldAddOperator) switch
         {
-            (null, null, _) => (null, false),
-            (null, _, _) => (mid, false),
-            (_, null, _) => (left, false),
-            (_, _, LexemeID.Add) => (new Add(left, mid), false),
-            (_, _, LexemeID.Subtract) => (new Subtract(left, mid), false),
+            (null, null, _) => (null, openParenthReported),
+            (null, _, _) => (mid, openParenthReported),
+            (_, null, _) => (left, openParenthReported),
+            (_, _, LexemeID.Add) => (new Add(left, mid), openParenthReported),
+            (_, _, LexemeID.Subtract) => (new Subtract(left, mid), openParenthReported),
             _ => throw new Exception("meow :3"),
         };
     }
