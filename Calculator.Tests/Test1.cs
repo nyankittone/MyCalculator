@@ -388,6 +388,41 @@ public sealed class ParserTests
 
         Assert.Fail("Expected parser exception, ran sucessfully instead");
     }
+
+    public static IEnumerable<(SequentialLexeme[], int[])> UnclosedParenthesis2 => [
+        (L.Seq([L.Open]), [0]),
+        (L.Seq([L.Open, L.Open, L.Open]), [4, 2, 0])
+    ];
+
+    [TestMethod]
+    [DynamicData(nameof(UnclosedParenthesis2))]
+    public void TestUnclosedParenthesis2((SequentialLexeme[], int[]) input) {
+        SequentialLexeme[] lexemes = input.Item1;
+        int[] indices = input.Item2;
+
+        try
+        {
+            Parser.Parse(lexemes, L.GimmeFactory(lexemes));
+        }
+        catch (Exception e)
+        {
+            Assert.IsInstanceOfType<AggregateException>(e);
+            var es = ((AggregateException)e).InnerExceptions;
+
+            Assert.HasCount(indices.Length, es);
+            for (int i = 0; i < indices.Length; i++)
+            {
+                Assert.IsInstanceOfType<ParserException>(es[i]);
+                var pe = ((ParserException)es[i]);
+                Assert.AreEqual(ParserErrorID.ExpectedNumber, pe.ID);
+                Assert.AreEqual(indices[i], pe.Index);
+            }
+
+            return;
+        }
+
+        Assert.Fail("Expected parser exception, ran sucessfully instead");
+    }
 }
 
 [TestClass]
