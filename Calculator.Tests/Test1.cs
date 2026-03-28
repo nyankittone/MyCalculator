@@ -414,7 +414,7 @@ public sealed class ParserTests
             {
                 Assert.IsInstanceOfType<ParserException>(es[i]);
                 var pe = ((ParserException)es[i]);
-                Assert.AreEqual(ParserErrorID.ExpectedNumber, pe.ID);
+                Assert.AreEqual(ParserErrorID.UnclosedParenthesis, pe.ID);
                 Assert.AreEqual(indices[i], pe.Index);
             }
 

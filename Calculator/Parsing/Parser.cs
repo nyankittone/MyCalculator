@@ -153,9 +153,13 @@ public static class Parser
         IExpression? returned = MaybeRecurse(tokens, ref stuff, depth);
         if (returned is null)
         {
+            try {
             if (tokens.Current.SeqIndex - openParenthLexeme.SeqIndex < 2)
             {
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.EmptyParenthesis, openParenthLexeme));
+            }
+            } catch(InvalidOperationException) {
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, openParenthLexeme));
             }
         }
 
