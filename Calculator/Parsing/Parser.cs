@@ -163,6 +163,8 @@ public static class Parser
             catch (InvalidOperationException)
             {
                 Console.Error.WriteLine(stuff.Errors.Count);
+
+                if(!openParenthReported)
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, openParenthLexeme));
             }
         }
