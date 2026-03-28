@@ -369,6 +369,7 @@ public static class Parser
             // TODO: Save the beginning lexeme for the open parenthesis for use in these errors
             stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, openLexeme.Value));
             Console.Error.WriteLine(":3 <3");
+            openParenthReported = true;
         }
 
         mid = Merge(mid, right, oldMultOperator);
