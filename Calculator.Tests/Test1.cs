@@ -428,6 +428,71 @@ public sealed class ParserTests
 
         Assert.Fail("Expected parser exception, ran sucessfully instead");
     }
+
+    [TestMethod]
+    public void OpenOpenClose() {
+        SequentialLexeme[] input = L.Seq([L.Open, L.Open, L.Close]);
+
+        try
+        {
+            Parser.Parse(input, L.GimmeFactory(input));
+        }
+        catch (Exception e)
+        {
+            Assert.IsInstanceOfType<AggregateException>(e);
+            var es = ((AggregateException)e).InnerExceptions;
+
+            Assert.HasCount(2, es);
+
+            Assert.IsInstanceOfType<ParserException>(es[0]);
+            var ex1 = (ParserException)es[0];
+            Assert.AreEqual(ParserErrorID.EmptyParenthesis, ex1.ID);
+            Assert.AreEqual(2, ex1.Index);
+
+            Assert.IsInstanceOfType<ParserException>(es[1]);
+            var ex2 = (ParserException)es[1];
+            Assert.AreEqual(ParserErrorID.UnclosedParenthesis, ex2.ID);
+            Assert.AreEqual(0, ex2.Index);
+            return;
+        }
+
+        Assert.Fail("Expected parser exception, ran sucessfully instead");
+    }
+
+    [TestMethod]
+    public void OpenCloseClose() {
+        SequentialLexeme[] input = L.Seq([L.Open, L.Close, L.Close]);
+
+        try
+        {
+            Parser.Parse(input, L.GimmeFactory(input));
+        }
+        catch (Exception e)
+        {
+            Assert.IsInstanceOfType<AggregateException>(e);
+            var es = ((AggregateException)e).InnerExceptions;
+
+            Assert.HasCount(3, es);
+
+            Assert.IsInstanceOfType<ParserException>(es[0]);
+            var ex = (ParserException)es[0];
+            Assert.AreEqual(ParserErrorID.EmptyParenthesis, ex.ID);
+            Assert.AreEqual(0, ex.Index);
+
+            Assert.IsInstanceOfType<ParserException>(es[1]);
+            ex = (ParserException)es[1];
+            Assert.AreEqual(ParserErrorID.ExpectedOperator, ex.ID);
+            Assert.AreEqual(4, ex.Index);
+
+            Assert.IsInstanceOfType<ParserException>(es[2]);
+            ex = (ParserException)es[2];
+            Assert.AreEqual(ParserErrorID.ExtraParenthesisClose, ex.ID);
+            Assert.AreEqual(4, ex.Index);
+            return;
+        }
+
+        Assert.Fail("Expected parser exception, ran sucessfully instead");
+    }
 }
 
 [TestClass]
