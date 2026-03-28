@@ -391,7 +391,12 @@ public sealed class ParserTests
 
     public static IEnumerable<(SequentialLexeme[], int[])> UnclosedParenthesis2 => [
         (L.Seq([L.Open]), [0]),
-        (L.Seq([L.Open, L.Open, L.Open]), [4, 2, 0])
+        (L.Seq([L.Open, L.Open, L.Open]), [4, 2, 0]),
+        (L.Seq([L.Open, L.Num("67")]), [0]),
+        (L.Seq([L.Num("9"), L.Add, L.Open]), [4]),
+        (L.Seq([L.Num("9"), L.Add, L.Open, L.Num("10")]), [4]),
+        (L.Seq([L.Open, L.Open, L.Open, L.Open, L.Open, L.Num("42"), L.Close, L.Close, L.Close, L.Close]), [0]),
+        (L.Seq([L.Open, L.Open, L.Open, L.Open, L.Open, L.Num("42"), L.Close, L.Close, L.Close]), [2, 0]),
     ];
 
     [TestMethod]
