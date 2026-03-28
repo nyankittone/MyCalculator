@@ -153,12 +153,16 @@ public static class Parser
         IExpression? returned = MaybeRecurse(tokens, ref stuff, depth);
         if (returned is null)
         {
-            try {
-            if (tokens.Current.SeqIndex - openParenthLexeme.SeqIndex < 2)
+            try
             {
-                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.EmptyParenthesis, openParenthLexeme));
+                if (tokens.Current.SeqIndex - openParenthLexeme.SeqIndex < 2)
+                {
+                    stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.EmptyParenthesis, openParenthLexeme));
+                }
             }
-            } catch(InvalidOperationException) {
+            catch (InvalidOperationException)
+            {
+                Console.Error.WriteLine(stuff.Errors.Count);
                 stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, openParenthLexeme));
             }
         }
@@ -278,6 +282,8 @@ public static class Parser
         LexemeID? oldAddOperator = null;
         LexemeID? oldMultOperator = null;
 
+        SequentialLexeme? openLexeme = depth > 0 ? tokens.Current : null;
+
         if (FindValidOperand(tokens, ref stuff, tryNext))
         {
             return null;
@@ -359,7 +365,7 @@ public static class Parser
         {
             Console.Error.WriteLine("MEOWWWWWWWW <3");
             // TODO: Save the beginning lexeme for the open parenthesis for use in these errors
-            stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, checkLexeme.Lexeme.Value));
+            stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, openLexeme.Value));
             Console.Error.WriteLine(":3 <3");
         }
 
