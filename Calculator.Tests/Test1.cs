@@ -11,6 +11,10 @@ static class L
     public static Lexeme Open = new Lexeme(LexemeID.IncPrecedence, "(");
     public static Lexeme Close = new Lexeme(LexemeID.DecPrecedence, ")");
 
+    public static Lexeme Constant(string stuff) => new Lexeme(LexemeID.Constant, stuff);
+    public static Lexeme Variable(string stuff) => new Lexeme(LexemeID.Variable, stuff);
+    public static Lexeme Builtin(string stuff) => new Lexeme(LexemeID.BuiltinFunc, stuff);
+    public static Lexeme CustomFunc(string stuff) => new Lexeme(LexemeID.CustomFunc, stuff);
     public static Lexeme Inval(string stuff) => new Lexeme(LexemeID.Invalid, stuff);
     public static Lexeme Num(string n) => new Lexeme(LexemeID.Number, n);
 
@@ -666,6 +670,64 @@ public sealed class LexerTests
             L.Close,
             L.Sub,
             L.Num("69"),
+        ]));
+    }
+
+    [TestMethod]
+    public void InvalidToken()
+    {
+        var result = Lexer.Lex("69 ;KJ:J;jh;lkjH 10").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Num("69"),
+            L.Inval(";KJ:J;jh;lkjH"),
+            L.Num("10"),
+        ]));
+    }
+
+    [TestMethod]
+    public void InvalidTokens()
+    {
+        var result = Lexer.Lex("9 + bleh47(()vvvvvvvvMEOW**10").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Num("9"),
+            L.Add,
+            L.Inval("bleh"),
+            L.Num("47"),
+            L.Open,
+            L.Open,
+            L.Close,
+            L.Inval("vvvvvvvvMEOW"),
+            L.Exp,
+            L.Num("10"),
+        ]));
+    }
+
+    [TestMethod]
+    public void SixSevenSymbol() {
+        var result = Lexer.Lex("sixseven").ToArray();
+        AssertArraysEqual(result, L.Seq([L.Constant("sixseven")]));
+    }
+
+    [TestMethod]
+    public void SixSevenSymbolWithOtherStuff() {
+        var result = Lexer.Lex("5 + sixseven * 2").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Num("5"),
+            L.Add,
+            L.Constant("sixseven"),
+            L.Mult,
+            L.Num("2"),
+        ]));
+    }
+
+    [TestMethod]
+    public void Squirt64() {
+        var result = Lexer.Lex("sqrt(64)").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Builtin("sqrt"),
+            L.Open,
+            L.Num("64"),
+            L.Close,
         ]));
     }
 }

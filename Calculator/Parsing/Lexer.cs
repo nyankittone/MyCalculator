@@ -8,6 +8,8 @@ namespace Calculator;
 
 // Used for tagging lexemes with info on what exactly the lexeme is supposed to be. Also used for
 // tagging nodes in an IExpression.
+// In a future parser and lexer, maybe having seperate enums for these two tasks would be a good
+// idea, because there have been times where the IDs here don't make sense in one place or another.
 public enum LexemeID
 {
     None,
@@ -19,6 +21,8 @@ public enum LexemeID
     Exponent,
     IncPrecedence,
     DecPrecedence,
+    Constant,
+    Variable,
     BuiltinFunc,
     CustomFunc,
     Invalid,
@@ -117,6 +121,15 @@ public class LexemeSpawner
         new SequentialLexeme(new Lexeme(LexemeID.IncPrecedence, token), index, counter++);
     public SequentialLexeme DecPrecedence(string token, int? index) =>
         new SequentialLexeme(new Lexeme(LexemeID.DecPrecedence, token), index, counter++);
+
+    public SequentialLexeme Constant(string token, int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.Constant, token), index, counter++);
+    public SequentialLexeme Variable(string token, int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.Variable, token), index, counter++);
+    public SequentialLexeme Builtin(string token, int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.BuiltinFunc, token), index, counter++);
+    public SequentialLexeme CustomFunc(string token, int? index) =>
+        new SequentialLexeme(new Lexeme(LexemeID.CustomFunc, token), index, counter++);
     public SequentialLexeme Invalid(string token, int? index) =>
         new SequentialLexeme(new Lexeme(LexemeID.Invalid, token), index, counter++);
 
