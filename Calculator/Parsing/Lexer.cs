@@ -6,6 +6,8 @@ using System.Linq;
 using RE = System.Text.RegularExpressions;
 namespace Calculator;
 
+// Used for tagging lexemes with info on what exactly the lexeme is supposed to be. Also used for
+// tagging nodes in an IExpression.
 public enum LexemeID
 {
     None,
@@ -22,6 +24,7 @@ public enum LexemeID
     Invalid,
 }
 
+// Class that adds extensions specifically for the LexemeID and ILexeme type.
 public static class LexemeIDExtensions
 {
     public static bool IsOperator(this LexemeID id) => id switch
@@ -31,30 +34,34 @@ public static class LexemeIDExtensions
         _ => false,
     };
 
-    // Totally not sketchy to have default methods as extensions... but it's the most ergonomic way
-    // I can do this imo.
     public static bool IsOperator(this ILexeme lexeme) => lexeme.ID.IsOperator();
     public static bool Equals(this ILexeme x, ILexeme y) => x.ID == y.ID && x.Token == y.Token;
 }
 
-public interface ILexeme {
-    LexemeID ID {get;}
-    string Token {get;}
+// Core type for Lexemes. It simply just has a token and a LexemeID associated with it. In practice,
+// the SequentialLexeme type is usually used in things that use this type, since we need a little
+// more info than what this interface alone exposes.
+public interface ILexeme
+{
+    LexemeID ID { get; }
+    string Token { get; }
 }
 
-public readonly record struct Lexeme(LexemeID ID, string Token) : ILexeme {
-    public override string ToString() => $"{ID}(\"{Token}\")"; // This might make more sense to add
-                                                               // to the interface
+// Minimal implementation of ILexeme for testing purposes. Actual code in the application will
+// almost always use a SequentialLexeme.
+public readonly record struct Lexeme(LexemeID ID, string Token) : ILexeme
+{
+    public override string ToString() => $"{ID}(\"{Token}\")";
 }
 
-// In the future, a better achitectural decision would be to make this an interface. With one data
-// type having the nullable properties and the othe4r not having them. I didn't feel like doing that
-// here, but yeah...
+// Main implementation of ILexeme used throughout the program. It's composed of a Lexeme, but adds
+// some additional fields for storing the lexeme's index and sequence number in the context of a
+// string that the tokens were extracted from.
 public struct SequentialLexeme : ILexeme
 {
     private Lexeme inside;
-    public LexemeID ID {get => inside.ID;}
-    public string Token {get => inside.Token;}
+    public LexemeID ID { get => inside.ID; }
+    public string Token { get => inside.Token; }
 
     public int? Index { get; }
     public uint SeqIndex { get; }
@@ -69,7 +76,11 @@ public struct SequentialLexeme : ILexeme
     public override string ToString() => $"@{Index + 1}: {inside}";
 }
 
-public class LexemeSpawner {
+// This class is used to spawn SequentialLexemes in a matter where each new one has a sequence
+// number 1 point higher than the last spawned SequentialLexeme. This is to aid in actually creating
+// these lexemes in sequence.
+public class LexemeSpawner
+{
     private uint counter = 0;
 
     public SequentialLexeme Number(string token, int? index) =>
@@ -82,6 +93,8 @@ public class LexemeSpawner {
         new SequentialLexeme(new Lexeme(LexemeID.Multiply, "*"), index, counter++);
     public SequentialLexeme Divide(int? index) =>
         new SequentialLexeme(new Lexeme(LexemeID.Divide, "/"), index, counter++);
+
+    // TODO: allow "^" to be used for exponents too.
     public SequentialLexeme Exponent(int? index) =>
         new SequentialLexeme(new Lexeme(LexemeID.Exponent, "**"), index, counter++);
 
@@ -108,23 +121,28 @@ public class LexemeSpawner {
         new SequentialLexeme(new Lexeme(LexemeID.Invalid, token), index, counter++);
 
     // TODO: Consider removing a method like this in exchange for making the Sequence field mutable.
-    public SequentialLexeme ChangeSequence(in ILexeme based) => new SequentialLexeme (
+    public SequentialLexeme ChangeSequence(in ILexeme based) => new SequentialLexeme(
         new Lexeme(based.ID, based.Token),
         based is SequentialLexeme bruh ? bruh.Index : null, // performance?
         counter++
     );
 }
 
+// Static class containing functionality for the lexer.
 public static class Lexer
 {
-    private static IEnumerable<(int, int)> SplitWhitespace(string input) {
+    // Function that returns an iterator over each non-whitespace part of the string, using indices
+    // to refer to subsections of the string so we don't lose that information while iterating with
+    // it.
+    private static IEnumerable<(int, int)> SplitWhitespace(string input)
+    {
         RE.MatchCollection matches = RE.Regex.Matches(input, @"[^\s]+");
-        foreach(RE.Match match in matches) {
-            yield return (match.Index, match.Index + match.Length);
-        }
+        return matches.Select((match) => (match.Index, match.Index + match.Length));
     }
 
-    private static Nullable<int> CheckNumber(string input)
+    // Function that checks if the beginning of a string slice passed into this represents a number.
+    // If yes, it returns the length of the valid section. Else, it returns null.
+    private static int? CheckNumber(string input)
     {
         if (input.Length == 0)
         {
@@ -160,6 +178,8 @@ public static class Lexer
         return leftMatch.Success ? returned : null;
     }
 
+    // Function that checks if the beginning of a string slice passed in is a valid operator.
+    // Returns the length of the operator in the slice if successful, and null otherwise.
     private static int? CheckOperator(string input)
     {
         if (input.Length == 0)
@@ -175,6 +195,7 @@ public static class Lexer
         };
     }
 
+    // Internal data structure used for returning from PartialLex().
     private struct PartialLexResult(int index, bool wasCloseParenth)
     {
         public int Index { get; } = index; // Where the PartialLex left off inside our token
@@ -182,6 +203,7 @@ public static class Lexer
                                                                 // looked at was a closing parenthesis
     }
 
+    // Function that lexes a couple tokens inside the main string passed.
     private static PartialLexResult PartialLex(string token, int index, in int bigIndex, bool wasCloseParenth, List<SequentialLexeme> outputList, ref LexemeSpawner spawn)
     {
         outputList.Clear();
@@ -226,24 +248,29 @@ public static class Lexer
         return new PartialLexResult(index, false);
     }
 
-    private static SequentialLexeme? LexInvalid(string token, int index, in int bigIndex, ref LexemeSpawner spawn)
+    // This function tries to hand back a lexeme representing something that is invalid or a known
+    // symbol, if we get to the end of doing a PartialLex without actually adding any more lexemes.
+    private static SequentialLexeme? LexSymbol(string token, int index, in int bigIndex, ref LexemeSpawner spawn)
     {
         var match = RE.Regex.Match(token[index..], @"^[^0-9\(\)\+\-\*\/]*"); // This may be like
                                                                              // slightly slow?
-        return match.Success switch
-        {
-            true => spawn.Invalid(match.Value, index + bigIndex),
-            false => null,
-        };
+        if(!match.Success) {
+            return null;
+        }
+
+        return spawn.Invalid(match.Value, index + bigIndex);
     }
 
+    // This function takes an input string, and squirts out a series of lexemes for it.
     public static IEnumerable<SequentialLexeme> Lex(string input)
     {
         LexemeSpawner spawn = new();
         List<SequentialLexeme> partialLexResult = new();
 
-        // TODO: Iterate between whitespace while preserving info about where the whitespace is and
-        // how much of it is there, so we can get more accurate index numbers for each lexeme.
+        // Splitting the whole stream into big tokens, then iterating on those to fetch little
+        // tokens.
+        // It's called "bigIndex" because it's the index to the "big token", which is a token for a
+        // single non-whitespace region of the whole string.
         foreach ((int bigIndex, int endIndex) in SplitWhitespace(input))
         {
             int startIndex = 0;
@@ -259,11 +286,12 @@ public static class Lexer
                 startIndex = result.Index;
                 wasCloseParenth = result.WasCloseParenth;
 
+                // If we have found no new tokens, try lexing a symbol instead
                 if (partialLexResult.Count == 0)
                 {
                     // Recover from an invalid token, by scanning forward until encountering a
                     // character for something valid.
-                    if (LexInvalid(bigToken, startIndex, bigIndex, ref spawn) is SequentialLexeme lexeme)
+                    if (LexSymbol(bigToken, startIndex, bigIndex, ref spawn) is SequentialLexeme lexeme)
                     {
                         yield return lexeme;
                         startIndex += lexeme.Token.Length;
