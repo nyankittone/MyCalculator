@@ -280,6 +280,9 @@ public static class Parser
         Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext,
         uint depth)
     {
+        bool openParenthReported = false;
+
+        try {
         (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
         LexemeID? oldAddOperator = null;
         LexemeID? oldMultOperator = null;
@@ -321,7 +324,7 @@ public static class Parser
                 case FindOperatorReturn.OutOfLexemes:
                     continue;
             }
-
+            
             int oldErrorCount = stuff.Errors.Count;
             if (FindValidOperand(tokens, ref stuff, tryNext))
             {
@@ -363,14 +366,10 @@ public static class Parser
             }
         }
 
-        bool openParenthReported = false;
 
         if (checkLexeme.EndOfStream && depth > 0)
         {
-            Console.Error.WriteLine("MEOWWWWWWWW <3");
-            // TODO: Save the beginning lexeme for the open parenthesis for use in these errors
             stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, openLexeme.Value));
-            Console.Error.WriteLine(":3 <3");
             openParenthReported = true;
         }
 
@@ -382,8 +381,20 @@ public static class Parser
             (_, null, _) => (left, openParenthReported),
             (_, _, LexemeID.Add) => (new Add(left, mid), openParenthReported),
             (_, _, LexemeID.Subtract) => (new Subtract(left, mid), openParenthReported),
-            _ => throw new Exception("meow :3"),
+            _ => throw new ArgumentException("Invalid operator specified for final merge"),
         };
+        } catch(Exception e) when(e is (ArgumentException or NullReferenceException or ArithmeticException)) {
+            stuff.Errors.Add(e);
+
+            // Try to zoom to the end of the expression. This might fail
+            try {
+                while(tryNext(tokens).Lexeme is not null);
+            } catch(Exception e2) {
+                throw new ArgumentException("Failed to scroll to end of parenthesis block!", e2);
+            }
+
+            return (null, openParenthReported);
+        }
     }
 
     public static IExpression? Parse(IEnumerable<SequentialLexeme> tokens, ParserExceptionFactory errorMaker)
@@ -392,11 +403,21 @@ public static class Parser
 
         using (var enumerator = tokens.GetEnumerator())
         {
-            (IExpression? expr, _) = ParseRec(enumerator, ref stuff, (tokens) => tokens.MoveNext() switch
-            {
-                true => EndTestResult.Ye(tokens.Current),
-                false => EndTestResult.StreamEnd(),
-            }, 0);
+            IExpression? expr = null;
+
+            try {
+                (IExpression? tmpExpr, _) = ParseRec(enumerator, ref stuff, (tokens) => tokens.MoveNext() switch
+                {
+                    true => EndTestResult.Ye(tokens.Current),
+                    false => EndTestResult.StreamEnd(),
+                }, 0);
+
+                expr = tmpExpr;
+            } catch(StackOverflowException e) {
+                stuff.Errors.Add(new StackOverflowException("Expression is too deep!", e));
+            } catch(Exception e) when(e is ArgumentException) {
+                stuff.Errors.Add(e);
+            }
 
             if (stuff.Errors.Count > 0)
             {

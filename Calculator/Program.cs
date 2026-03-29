@@ -1,5 +1,4 @@
-﻿// TODO: Add error handling in the tokenizer and parser.
-// TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc.
+﻿// TODO: Add support for pre-defined math functions, i.e. sqrt, floor, ciel, min, max, etc.
 // TODO: Add support for defining custom functions.
 // TODO: Use arbitrary-precision numbers instead of the built-in `decimal` type.
 
@@ -36,6 +35,37 @@ class Program
             left = right;
         }
     }
+
+    private static Func<Exception, bool> HandleError(string line) => (error) => {
+        if (error is ParserException parserError)
+        {
+            Console.Error.WriteLine(parserError.Message);
+            if(parserError.Index is int idx && parserError.Length is int len) {
+                Console.Error.WriteLine(
+                    "  \x1b[1m{0}\x1b[m\r\n  {1}\x1b[1;91m^{2}\x1b[m",
+                    line,
+                    new string(' ', idx),
+                    new string('~', len - 1)
+                );
+            }
+
+        }
+        else if(error is (StackOverflowException or ArgumentException or ArithmeticException or NullReferenceException)) {
+            Exception printedError = error.InnerException ?? error;
+            Console.Error.WriteLine (
+                $"\x1b[1;91mPROCESS ERROR:\x1b[m {error.Message}\r\n" + 
+                $"\x1b[1m---------------------\x1b[m\r\n" + 
+                $"{printedError}\r\n" +
+                $"\x1b[1m---------------------\x1b[m\r\n"
+            );
+        } else {
+            Console.Error.WriteLine(">>>FUCK<<<");
+            return false;
+        }
+
+        Console.Error.WriteLine();
+        return true;
+    };
 
     static void Main(string[] args)
     {
@@ -86,25 +116,7 @@ class Program
                     Console.Error.WriteLine("\x1b[1;91mmultiple errors occured:\x1b[m");
                 }
 
-                ae.Flatten().Handle((error) =>
-                {
-                    if (error is ParserException parserError)
-                    {
-                        Console.Error.WriteLine(parserError.Message);
-                        if(parserError.Index is int idx && parserError.Length is int len) {
-                            Console.Error.WriteLine(
-                                "  \x1b[1m{0}\x1b[m\r\n  {1}\x1b[1;91m^{2}\x1b[m",
-                                line,
-                                new string(' ', idx),
-                                new string('~', len - 1)
-                            );
-                        }
-
-                    }
-
-                    Console.Error.WriteLine();
-                    return true;
-                });
+                ae.Handle(HandleError(line));
 
                 // TODO: Make so this check doesn't have to run each time a parser error happened
                 // with exception printing turned on.
