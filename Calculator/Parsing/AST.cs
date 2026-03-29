@@ -109,6 +109,8 @@ public abstract class OneParamFunc(IExpression child) : Builtin
     }
 }
 
+// TODO: All of this casting to and from double is not great for a calculator. Find a way to
+// implement these operations more accurately.
 public class Sqrt : OneParamFunc
 {
     public Sqrt(IExpression thing) : base(thing) { }
@@ -127,6 +129,42 @@ public class Ceil : OneParamFunc
     public override decimal Evaluate() => (decimal)Math.Ceiling((double)child.Evaluate());
 }
 
+public class Sin : OneParamFunc
+{
+    public Sin(IExpression thing) : base(thing) { }
+    public override decimal Evaluate() => (decimal)Math.Sin((double)child.Evaluate());
+}
+
+public class Cos : OneParamFunc
+{
+    public Cos(IExpression thing) : base(thing) { }
+    public override decimal Evaluate() => (decimal)Math.Cos((double)child.Evaluate());
+}
+
+public class Tan : OneParamFunc
+{
+    public Tan(IExpression thing) : base(thing) { }
+    public override decimal Evaluate() => (decimal)Math.Tan((double)child.Evaluate());
+}
+
+public class Log : OneParamFunc
+{
+    public Log(IExpression thing) : base(thing) { }
+    public override decimal Evaluate() => (decimal)Math.Log((double)child.Evaluate());
+}
+
+public class Log10 : OneParamFunc
+{
+    public Log10(IExpression thing) : base(thing) { }
+    public override decimal Evaluate() => (decimal)Math.Log10((double)child.Evaluate());
+}
+
+public class Log2 : OneParamFunc
+{
+    public Log2(IExpression thing) : base(thing) { }
+    public override decimal Evaluate() => (decimal)Math.Log2((double)child.Evaluate());
+}
+
 public abstract class TwoParamFunc(IExpression child1, IExpression child2) : Builtin
 {
     protected IExpression child1 = child1;
@@ -138,9 +176,9 @@ public abstract class TwoParamFunc(IExpression child1, IExpression child2) : Bui
     }
 }
 
-public class Rand : TwoParamFunc
+public class RandRange : TwoParamFunc
 {
-    public Rand(IExpression c1, IExpression c2) : base(c1, c2) { }
+    public RandRange(IExpression c1, IExpression c2) : base(c1, c2) { }
     public override decimal Evaluate()
     {
         var randResult = UniversalRandom.Get().NextDouble();
@@ -186,3 +224,16 @@ public class Max(IEnumerable<IExpression> children) : Builtin
         return returned;
     }
 }
+
+public abstract class NoParamFunc() : Builtin {
+    public override IEnumerable<IExpression> Children()
+    {
+        yield break;
+    }
+}
+
+public class Rand : NoParamFunc {
+    public Rand() : base() {}
+    public override decimal Evaluate() => (decimal)UniversalRandom.Get().NextDouble();
+}
+

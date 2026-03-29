@@ -37,6 +37,28 @@ public struct SymbolFinder()
         return returned;
     }
 
+    private static (IExpression, IExpression) ValidateTwo(IEnumerable<IExpression> inputs) {
+        var iter = inputs.GetEnumerator();
+        if (iter.MoveNext() == false)
+        {
+            throw new ArgumentException("Expected 2 arguments, got none");
+        }
+
+        IExpression ret1 = iter.Current;
+        if (iter.MoveNext() == false)
+        {
+            throw new ArgumentException("Expected 2 arguments, got 1");
+        }
+
+        IExpression ret2 = iter.Current;
+        if (iter.MoveNext() == true)
+        {
+            throw new ArgumentException("Expected 2 arguments, got more than 2");
+        }
+
+        return (ret1, ret2);
+    }
+
     private static IEnumerable<IExpression> ValidateNotZero(IEnumerable<IExpression> inputs)
     {
         var iter = inputs.GetEnumerator();
@@ -70,12 +92,27 @@ public struct SymbolFinder()
             ["sqrt"] = (range) => new Sqrt(ValidateOne(range)),
             ["floor"] = (range) => new Floor(ValidateOne(range)),
             ["ceil"] = (range) => new Ceil(ValidateOne(range)),
+            ["sin"] = (range) => new Sin(ValidateOne(range)),
+            ["cos"] = (range) => new Cos(ValidateOne(range)),
+            ["tan"] = (range) => new Tan(ValidateOne(range)),
+            ["log"] = (range) => new Log(ValidateOne(range)),
+
+            // TODO: Fix the lexer so we can interpret symbols with numbers. Either that, or rename
+            // these so that they're callable.
+            ["log10"] = (range) => new Log10(ValidateOne(range)),
+            ["log2"] = (range) => new Log2(ValidateOne(range)),
+
+            ["randRange"] = (range) => {
+                (var first, var second) = ValidateTwo(range);
+                return new RandRange(first, second);
+            },
+
             ["min"] = (range) => new Min(ValidateNotZero(range)),
             ["max"] = (range) => new Max(ValidateNotZero(range)),
             ["rand"] = (range) =>
             {
                 ValidateNone(range);
-                return new Number("42");
+                return new Rand();
             },
         };
 

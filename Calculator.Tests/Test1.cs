@@ -730,5 +730,51 @@ public sealed class LexerTests
             L.Close,
         ]));
     }
+
+    [TestMethod]
+    public void AFewBuiltins() {
+        var result = Lexer.Lex("sqrt(64) + sin(0) + cos(0) + tan(0) + log(1)").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Builtin("sqrt"),
+            L.Open,
+            L.Num("64"),
+            L.Close,
+            L.Add,
+            L.Builtin("sin"),
+            L.Open,
+            L.Num("0"),
+            L.Close,
+            L.Add,
+            L.Builtin("cos"),
+            L.Open,
+            L.Num("0"),
+            L.Close,
+            L.Add,
+            L.Builtin("tan"),
+            L.Open,
+            L.Num("0"),
+            L.Close,
+            L.Add,
+            L.Builtin("log"),
+            L.Open,
+            L.Num("1"),
+            L.Close,
+        ]));
+    }
+
+    [TestMethod]
+    public void MoreBuiltins() {
+        var result = Lexer.Lex("(rand + 9) * ceil 1.5").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Open,
+            L.Builtin("rand"),
+            L.Add,
+            L.Num("9"),
+            L.Close,
+            L.Mult,
+            L.Builtin("ceil"),
+            L.Num("1.5"),
+        ]));
+    }
 }
 
