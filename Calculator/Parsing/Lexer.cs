@@ -13,10 +13,10 @@ public enum LexemeID
     Multiply,
     Divide,
     Exponent,
-    SquareRoot,
     IncPrecedence,
     DecPrecedence,
-    Func,
+    BuiltinFunc,
+    CustomFunc,
     Invalid,
 }
 

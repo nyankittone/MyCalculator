@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 namespace Calculator;
 
 // TODO: Implement functions.
@@ -94,35 +93,66 @@ public class Exponent : Operator
     public override decimal Evaluate() => (decimal)Math.Pow((double)left.Evaluate(), (double)right.Evaluate());
 }
 
-public interface IFunction : IExpression {
-    static abstract IExpression Build(IEnumerable<IExpression> inputs);
+public abstract class Builtin : IExpression {
+    public LexemeID ID {get;} = LexemeID.BuiltinFunc;
+    public abstract IEnumerable<IExpression> Children();
+    public abstract decimal Evaluate();
 }
 
-public class Sqrt : IFunction
+public abstract class OneParamFunc(IExpression child) : Builtin {
+    protected IExpression child = child;
+    public override IEnumerable<IExpression> Children()
+    {
+        yield return child;
+    }
+}
+
+public class Sqrt : OneParamFunc
 {
-    public LexemeID ID {get;} = LexemeID.SquareRoot;
-    private IExpression unsquared;
+    public Sqrt(IExpression thing) : base(thing) {}
+    public override decimal Evaluate() => (decimal)Math.Sqrt((double)child.Evaluate());
+}
 
-    private Sqrt(IExpression unsquared) {
-        this.unsquared = unsquared;
-    }
+public class Floor : OneParamFunc
+{
+    public Floor(IExpression thing) : base(thing) {}
+    public override decimal Evaluate() => (decimal)Math.Floor((double)child.Evaluate());
+}
 
-    public static IExpression Build(IEnumerable<IExpression> inputs) {
-        var iter = inputs.GetEnumerator();
-        if(!iter.MoveNext()) {
-            throw new ArgumentException("Only exactly 1 argument is allowed here");
+public class Ceil : OneParamFunc
+{
+    public Ceil(IExpression thing) : base(thing) {}
+    public override decimal Evaluate() => (decimal)Math.Ceiling((double)child.Evaluate());
+}
+
+public class Min(IEnumerable<IExpression> children) : Builtin {
+    private IEnumerable<IExpression> children = children;
+    public override IEnumerable<IExpression> Children() => children;
+    public override decimal Evaluate() {
+        var iter = children.GetEnumerator();
+        iter.MoveNext();
+        decimal returned = iter.Current.Evaluate();
+
+        while(iter.MoveNext() == true) {
+            returned = Math.Min(returned, iter.Current.Evaluate());
         }
-        IExpression unsquared = iter.Current;
-        if(iter.MoveNext() == true) {
-            throw new ArgumentException("Only exactly 1 argument is allowed here");
+
+        return returned;
+    }
+}
+
+public class Max(IEnumerable<IExpression> children) : Builtin {
+    private IEnumerable<IExpression> children = children;
+    public override IEnumerable<IExpression> Children() => children;
+    public override decimal Evaluate() {
+        var iter = children.GetEnumerator();
+        iter.MoveNext();
+        decimal returned = iter.Current.Evaluate();
+
+        while(iter.MoveNext() == true) {
+            returned = Math.Max(returned, iter.Current.Evaluate());
         }
 
-        return new Sqrt(unsquared);
+        return returned;
     }
-
-    public IEnumerable<IExpression> Children() {
-        yield return unsquared;
-    }
-
-    public decimal Evaluate() => (decimal)Math.Sqrt((double)unsquared.Evaluate());
 }
