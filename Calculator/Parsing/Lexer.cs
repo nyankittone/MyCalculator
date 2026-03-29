@@ -1,3 +1,5 @@
+// TODO: Comment this file.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,7 +22,7 @@ public enum LexemeID
     Invalid,
 }
 
-public static class Ext
+public static class LexemeIDExtensions
 {
     public static bool IsOperator(this LexemeID id) => id switch
     {

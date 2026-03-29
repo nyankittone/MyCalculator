@@ -93,13 +93,15 @@ public class Exponent : Operator
     public override decimal Evaluate() => (decimal)Math.Pow((double)left.Evaluate(), (double)right.Evaluate());
 }
 
-public abstract class Builtin : IExpression {
-    public LexemeID ID {get;} = LexemeID.BuiltinFunc;
+public abstract class Builtin : IExpression
+{
+    public LexemeID ID { get; } = LexemeID.BuiltinFunc;
     public abstract IEnumerable<IExpression> Children();
     public abstract decimal Evaluate();
 }
 
-public abstract class OneParamFunc(IExpression child) : Builtin {
+public abstract class OneParamFunc(IExpression child) : Builtin
+{
     protected IExpression child = child;
     public override IEnumerable<IExpression> Children()
     {
@@ -109,52 +111,56 @@ public abstract class OneParamFunc(IExpression child) : Builtin {
 
 public class Sqrt : OneParamFunc
 {
-    public Sqrt(IExpression thing) : base(thing) {}
+    public Sqrt(IExpression thing) : base(thing) { }
     public override decimal Evaluate() => (decimal)Math.Sqrt((double)child.Evaluate());
 }
 
 public class Floor : OneParamFunc
 {
-    public Floor(IExpression thing) : base(thing) {}
+    public Floor(IExpression thing) : base(thing) { }
     public override decimal Evaluate() => (decimal)Math.Floor((double)child.Evaluate());
 }
 
 public class Ceil : OneParamFunc
 {
-    public Ceil(IExpression thing) : base(thing) {}
+    public Ceil(IExpression thing) : base(thing) { }
     public override decimal Evaluate() => (decimal)Math.Ceiling((double)child.Evaluate());
 }
 
-public abstract class TwoParamFunc(IExpression child1, IExpression child2) : Builtin {
+public abstract class TwoParamFunc(IExpression child1, IExpression child2) : Builtin
+{
     protected IExpression child1 = child1;
     protected IExpression child2 = child2;
-    public override IEnumerable<IExpression> Children() {
+    public override IEnumerable<IExpression> Children()
+    {
         yield return child1;
         yield return child2;
     }
 }
 
-// This code has some questionable parts to it. meow meow meow meow nyaaa~
-public class Rand : TwoParamFunc {
-    private Random rand = new();
-    public Rand(IExpression c1, IExpression c2) : base(c1, c2) {}
-
-    public override decimal Evaluate() {
-        var randResult = rand.NextDouble();
+public class Rand : TwoParamFunc
+{
+    public Rand(IExpression c1, IExpression c2) : base(c1, c2) { }
+    public override decimal Evaluate()
+    {
+        var randResult = UniversalRandom.Get().NextDouble();
         var evaldChild1 = child1.Evaluate();
         return (decimal)randResult * (child2.Evaluate() - evaldChild1) + evaldChild1;
     }
 }
 
-public class Min(IEnumerable<IExpression> children) : Builtin {
+public class Min(IEnumerable<IExpression> children) : Builtin
+{
     private IEnumerable<IExpression> children = children;
     public override IEnumerable<IExpression> Children() => children;
-    public override decimal Evaluate() {
+    public override decimal Evaluate()
+    {
         var iter = children.GetEnumerator();
         iter.MoveNext();
         decimal returned = iter.Current.Evaluate();
 
-        while(iter.MoveNext() == true) {
+        while (iter.MoveNext() == true)
+        {
             returned = Math.Min(returned, iter.Current.Evaluate());
         }
 
@@ -162,15 +168,18 @@ public class Min(IEnumerable<IExpression> children) : Builtin {
     }
 }
 
-public class Max(IEnumerable<IExpression> children) : Builtin {
+public class Max(IEnumerable<IExpression> children) : Builtin
+{
     private IEnumerable<IExpression> children = children;
     public override IEnumerable<IExpression> Children() => children;
-    public override decimal Evaluate() {
+    public override decimal Evaluate()
+    {
         var iter = children.GetEnumerator();
         iter.MoveNext();
         decimal returned = iter.Current.Evaluate();
 
-        while(iter.MoveNext() == true) {
+        while (iter.MoveNext() == true)
+        {
             returned = Math.Max(returned, iter.Current.Evaluate());
         }
 
