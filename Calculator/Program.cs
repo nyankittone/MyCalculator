@@ -48,7 +48,6 @@ class Program
                     new string('~', len - 1)
                 );
             }
-
         }
         else if(error is (StackOverflowException or ArgumentException or ArithmeticException or NullReferenceException)) {
             Exception printedError = error.InnerException ?? error;
