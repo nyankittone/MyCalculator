@@ -1,6 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 namespace Calculator;
+
+// TODO: Implement functions.
+// We should have both builtin functions and custom functions. Builtin functions are actual types we
+// define, while custom functions are of a single type, that we call a method to set the inputs.
+// Functions of any type should have the ID `Function`, since it shouldn't matter how the function
+// is implemented.
+
+// How will these things be constructed? We should feed it in an IEnumerable<IExpression>, and have
+// the constructor enforce if the right number of args was passed in.
 
 // We're going to make the parser also take the role of the lexer, for convenience on my end bc I
 // don't feel like being smart right now.
@@ -84,20 +94,35 @@ public class Exponent : Operator
     public override decimal Evaluate() => (decimal)Math.Pow((double)left.Evaluate(), (double)right.Evaluate());
 }
 
-public class Sqrt : IExpression
-{
-    public LexemeID ID { get; } = LexemeID.SquareRoot;
-    private IExpression unsquared;
-    public Sqrt(IExpression expr)
-    {
-        unsquared = expr;
-    }
-
-    // grrrrrr I hate these casts
-    public decimal Evaluate() => (decimal)Math.Sqrt((double)unsquared.Evaluate());
-    public IEnumerable<IExpression> Children()
-    {
-        yield return unsquared;
-    }
+public interface IFunction : IExpression {
+    static abstract IExpression Build(IEnumerable<IExpression> inputs);
 }
 
+public class Sqrt : IFunction
+{
+    public LexemeID ID {get;} = LexemeID.SquareRoot;
+    private IExpression unsquared;
+
+    private Sqrt(IExpression unsquared) {
+        this.unsquared = unsquared;
+    }
+
+    public static IExpression Build(IEnumerable<IExpression> inputs) {
+        var iter = inputs.GetEnumerator();
+        if(!iter.MoveNext()) {
+            throw new ArgumentException("Only exactly 1 argument is allowed here");
+        }
+        IExpression unsquared = iter.Current;
+        if(iter.MoveNext() == true) {
+            throw new ArgumentException("Only exactly 1 argument is allowed here");
+        }
+
+        return new Sqrt(unsquared);
+    }
+
+    public IEnumerable<IExpression> Children() {
+        yield return unsquared;
+    }
+
+    public decimal Evaluate() => (decimal)Math.Sqrt((double)unsquared.Evaluate());
+}
