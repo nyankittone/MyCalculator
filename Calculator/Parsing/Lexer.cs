@@ -271,7 +271,15 @@ public static class Lexer
             return null;
         }
 
-        return spawn.Invalid(match.Value, index + bigIndex);
+        string matched = match.Value;
+        return SymbolFinder.Singleton.GetSymbolType(matched) switch
+        {
+            SymbolType.Constant => spawn.Constant(match.Value, index + bigIndex),
+            SymbolType.Variable => spawn.Variable(match.Value, index + bigIndex),
+            SymbolType.BuiltinFunction => spawn.Builtin(match.Value, index + bigIndex),
+            SymbolType.CustomFunction => spawn.CustomFunc(match.Value, index + bigIndex),
+            _ => spawn.Invalid(match.Value, index + bigIndex),
+        };
     }
 
     // This function takes an input string, and squirts out a series of lexemes for it.

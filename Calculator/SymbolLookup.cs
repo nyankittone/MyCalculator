@@ -57,6 +57,9 @@ public struct SymbolFinder()
         }
     }
 
+    // evil singleton,,,,
+    public static SymbolFinder Singleton = new();
+
     private Dictionary<string, decimal> constantStash = new Dictionary<string, decimal> { ["sixseven"] = 67 };
     private Dictionary<string, decimal> variableStash = new();
     private Dictionary<string, Object> customStash = new();

@@ -95,7 +95,6 @@ class Program
                 }
             }
 
-            // TODO: Split this code into seperate functions to reduce indentation.
             try
             {
                 IExpression? expr = Parser.Parse(lexemes, new ParserExceptionFactory(line));
