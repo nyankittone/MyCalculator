@@ -145,7 +145,10 @@ public static class Parser
                     true => tokens.Current.ID == LexemeID.DecPrecedence ? EndTestResult.Nah() : EndTestResult.Ye(tokens.Current),
                     false => EndTestResult.StreamEnd(),
                     }, depth + 1),
-        LexemeID.Constant => (new Number(SymbolFinder.Singleton.GetFalliableNumber(tokens.Current.Token)), false),
+        LexemeID.Constant or LexemeID.Variable => (
+            new Number(SymbolFinder.Singleton.GetFalliableNumber(tokens.Current.Token)),
+            false
+        ),
         LexemeID.Number => (new Number(tokens.Current.Token), false),
         _ => throw new ArgumentException("Invalid lexeme type for MaybeRecurse()"),
     };
