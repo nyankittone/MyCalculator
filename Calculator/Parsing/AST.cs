@@ -29,6 +29,11 @@ public class Number : IExpression
         number = Decimal.Parse(token); // TODO: Think about error handling here.
     }
 
+    public Number(decimal n)
+    {
+        number = n;
+    }
+
     public decimal Evaluate() => number;
     public IEnumerable<IExpression> Children()
     {

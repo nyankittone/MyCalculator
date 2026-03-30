@@ -134,17 +134,26 @@ public static class Parser
         }
     }
 
-    private static (IExpression?, bool) MaybeRecurse(IEnumerator<SequentialLexeme> tokens, ref ParserStuff stuff, uint depth)
-    {
-        return tokens.Current.ID == LexemeID.IncPrecedence ?
+    private static (IExpression?, bool) MaybeRecurse (
+        IEnumerator<SequentialLexeme> tokens,
+        ref ParserStuff stuff,
+        uint depth)
+    => tokens.Current.ID switch {
+        LexemeID.IncPrecedence =>
             ParseRec(tokens, ref stuff, (tokens) => tokens.MoveNext() switch
-            {
-                true => tokens.Current.ID == LexemeID.DecPrecedence ? EndTestResult.Nah() : EndTestResult.Ye(tokens.Current),
-                false => EndTestResult.StreamEnd(),
-            }, depth + 1) : (new Number(tokens.Current.Token), false);
-    }
+                    {
+                    true => tokens.Current.ID == LexemeID.DecPrecedence ? EndTestResult.Nah() : EndTestResult.Ye(tokens.Current),
+                    false => EndTestResult.StreamEnd(),
+                    }, depth + 1),
+        LexemeID.Number => (new Number(tokens.Current.Token), false),
+        LexemeID.Constant => (new Number(SymbolFinder.Singleton.GetFalliableNumber(tokens.Current.Token)), false),
+    };
 
-    private static IExpression? TryParseNumber(IEnumerator<SequentialLexeme> tokens, ref ParserStuff stuff, uint depth)
+    // Wraps around MaybeRecurse, and on failure, tries to add errors to the error list.
+    private static IExpression? TryParseNumber(
+            IEnumerator<SequentialLexeme> tokens,
+            ref ParserStuff stuff,
+            uint depth)
     {
         SequentialLexeme openParenthLexeme = tokens.Current;
         (IExpression? returned, bool openParenthReported) = MaybeRecurse(tokens, ref stuff, depth);
@@ -152,17 +161,18 @@ public static class Parser
         {
             try
             {
+                // If this condition is true, that means we have an empty parenthesis block
                 if (tokens.Current.SeqIndex - openParenthLexeme.SeqIndex < 2)
                 {
                     stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.EmptyParenthesis, openParenthLexeme));
                 }
             }
+            // This should get caught if the check in the try{} throws when referring to
+            // tokens.Current. This indicates that a parenthesis has not been closed.
             catch (InvalidOperationException)
             {
-                Console.Error.WriteLine(stuff.Errors.Count);
-
-                if(!openParenthReported)
-                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, openParenthLexeme));
+                if (!openParenthReported)
+                    stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, openParenthLexeme));
             }
         }
 
@@ -279,7 +289,8 @@ public static class Parser
     {
         bool openParenthReported = false;
 
-        try {
+        try
+        {
             (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
             LexemeID? oldAddOperator = null;
             LexemeID? oldMultOperator = null;
@@ -379,13 +390,18 @@ public static class Parser
                 (_, _, LexemeID.Subtract) => (new Subtract(left, mid), openParenthReported),
                 _ => throw new ArgumentException("Invalid operator specified for final merge"),
             };
-        } catch(Exception e) when(e is (ArgumentException or NullReferenceException or ArithmeticException)) {
+        }
+        catch (Exception e) when (e is (ArgumentException or NullReferenceException or ArithmeticException))
+        {
             stuff.Errors.Add(e);
 
             // Try to zoom to the end of the expression. This might fail
-            try {
-                while(tryNext(tokens).Lexeme is not null);
-            } catch(Exception e2) {
+            try
+            {
+                while (tryNext(tokens).Lexeme is not null) ;
+            }
+            catch (Exception e2)
+            {
                 throw new ArgumentException("Failed to scroll to end of parenthesis block!", e2);
             }
 
@@ -401,7 +417,8 @@ public static class Parser
         {
             IExpression? expr = null;
 
-            try {
+            try
+            {
                 (IExpression? tmpExpr, _) = ParseRec(enumerator, ref stuff, (tokens) => tokens.MoveNext() switch
                 {
                     true => EndTestResult.Ye(tokens.Current),
@@ -409,9 +426,13 @@ public static class Parser
                 }, 0);
 
                 expr = tmpExpr;
-            } catch(StackOverflowException e) {
+            }
+            catch (StackOverflowException e)
+            {
                 stuff.Errors.Add(new StackOverflowException("Expression is too deep!", e));
-            } catch(Exception e) when(e is ArgumentException) {
+            }
+            catch (Exception e) when (e is ArgumentException)
+            {
                 stuff.Errors.Add(e);
             }
 

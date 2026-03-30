@@ -82,7 +82,11 @@ public struct SymbolFinder()
     // evil singleton,,,,
     public static SymbolFinder Singleton = new();
 
-    private Dictionary<string, decimal> constantStash = new Dictionary<string, decimal> { ["sixseven"] = 67 };
+    private Dictionary<string, decimal> constantStash = new Dictionary<string, decimal> {
+        ["sixseven"] = 67,
+        ["pi"] = 3.1415926535897932384626433832795m,
+        ["e"] = 2.7182818284590452353602874713527m,
+    };
     private Dictionary<string, decimal> variableStash = new();
     private Dictionary<string, Object> customStash = new();
 
@@ -150,6 +154,18 @@ public struct SymbolFinder()
         }
 
         return null;
+    }
+
+    public decimal GetFalliableNumber(string symbol)
+    {
+        decimal returned = 0;
+
+        if (constantStash.TryGetValue(symbol, out returned) || variableStash.TryGetValue(symbol, out returned))
+        {
+            return returned;
+        }
+
+        throw new KeyNotFoundException($"Number of symbol {symbol} doesn't exist");
     }
 
     // Returning `true` means that the variable was set successfully.
