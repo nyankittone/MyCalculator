@@ -265,21 +265,32 @@ public static class Lexer
     // symbol, if we get to the end of doing a PartialLex without actually adding any more lexemes.
     private static SequentialLexeme? LexSymbol(string token, int index, in int bigIndex, ref LexemeSpawner spawn)
     {
-        var match = RE.Regex.Match(token[index..], @"^[^0-9\(\)\+\-\*\/]*"); // This may be like
-                                                                             // slightly slow?
+        const string matchInvalid = @"^[^0-9\(\)\+\-\*\/]*";
+        const string matchSymbol = @"^[^0-9\(\)\+\-\*\/][^\(\)\+\-\*\/]*";
+
+        var match = RE.Regex.Match(token[index..], matchSymbol);
         if(!match.Success) {
             return null;
         }
 
-        string matched = match.Value;
-        return SymbolFinder.Singleton.GetSymbolType(matched) switch
-        {
-            SymbolType.Constant => spawn.Constant(match.Value, index + bigIndex),
-            SymbolType.Variable => spawn.Variable(match.Value, index + bigIndex),
-            SymbolType.BuiltinFunction => spawn.Builtin(match.Value, index + bigIndex),
-            SymbolType.CustomFunction => spawn.CustomFunc(match.Value, index + bigIndex),
-            _ => spawn.Invalid(match.Value, index + bigIndex),
-        };
+        switch(SymbolFinder.Singleton.GetSymbolType(match.Value)) {
+            case SymbolType.Constant:
+                return spawn.Constant(match.Value, index + bigIndex);
+            case SymbolType.Variable:
+                return spawn.Variable(match.Value, index + bigIndex);
+            case SymbolType.BuiltinFunction:
+                return spawn.Builtin(match.Value, index + bigIndex);
+            case SymbolType.CustomFunction:
+                return spawn.CustomFunc(match.Value, index + bigIndex);
+        }
+
+        match = RE.Regex.Match(token[index..], matchInvalid); // This may be like
+                                                              // slightly slow?
+        if(!match.Success) {
+            return null;
+        }
+
+        return spawn.Invalid(match.Value, index + bigIndex);
     }
 
     // This function takes an input string, and squirts out a series of lexemes for it.

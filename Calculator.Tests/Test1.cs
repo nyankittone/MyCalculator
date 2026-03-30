@@ -691,7 +691,8 @@ public sealed class LexerTests
         AssertArraysEqual(result, L.Seq([
             L.Num("9"),
             L.Add,
-            L.Inval("bleh47"),
+            L.Inval("bleh"),
+            L.Num("47"),
             L.Open,
             L.Open,
             L.Close,
@@ -706,7 +707,8 @@ public sealed class LexerTests
     {
         var result = Lexer.Lex("garn47+19/12m((b00b69))").ToArray();
         AssertArraysEqual(result, L.Seq([
-            L.Inval("garn47"),
+            L.Inval("garn"),
+            L.Num("47"),
             L.Add,
             L.Num("19"),
             L.Div,
@@ -714,7 +716,10 @@ public sealed class LexerTests
             L.Inval("m"),
             L.Open,
             L.Open,
-            L.Inval("b00b69"),
+            L.Inval("b"),
+            L.Num("00"),
+            L.Inval("b"),
+            L.Num("69"),
             L.Close,
             L.Close,
         ]));
@@ -792,6 +797,22 @@ public sealed class LexerTests
             L.Mult,
             L.Builtin("ceil"),
             L.Num("1.5"),
+        ]));
+    }
+
+    [TestMethod]
+    public void LogFuncs() {
+        var result = Lexer.Lex("log10(1000) + log2(8)").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Builtin("log10"),
+            L.Open,
+            L.Num("1000"),
+            L.Close,
+            L.Add,
+            L.Builtin("log2"),
+            L.Open,
+            L.Num("8"),
+            L.Close,
         ]));
     }
 }
