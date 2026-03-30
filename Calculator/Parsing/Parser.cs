@@ -146,8 +146,8 @@ public static class Parser
                     false => EndTestResult.StreamEnd(),
                     }, depth + 1),
         LexemeID.Constant => (new Number(SymbolFinder.Singleton.GetFalliableNumber(tokens.Current.Token)), false),
-        // LexemeID.Number => (new Number(tokens.Current.Token), false),
-        _ => (new Number(tokens.Current.Token), false),
+        LexemeID.Number => (new Number(tokens.Current.Token), false),
+        _ => throw new ArgumentException("Invalid lexeme type for MaybeRecurse()"),
     };
 
     // Wraps around MaybeRecurse, and on failure, tries to add errors to the error list.
