@@ -11,6 +11,7 @@ public enum ParserErrorID
     UnclosedParenthesis,
     ExtraParenthesisClose,
     InvalidOperator,
+    WrongArgumentCount,
     Other,
 }
 
@@ -29,6 +30,9 @@ public static class ParserErrorIDExtensions
         (ParserErrorID.InvalidOperator, SequentialLexeme l) => $"Invalid operator \"{l.Token}\"",
         (ParserErrorID.InvalidOperator, _) => "Invalid operator",
         (ParserErrorID.ExtraParenthesisClose, _) => "Cannot have a closing parenthesis here",
+        // TODO: This bottom error is really not very useful. We need to somehow extend this type
+        // with more info...
+        (ParserErrorID.WrongArgumentCount, _) => "Function does not have the right number of arguments",
         _ => "Unknown error type",
     };
 }

@@ -276,10 +276,34 @@ public sealed class ParserTests
     [TestMethod]
     [DynamicData(nameof(SqrtTests))]
     public void SquareRoot(IEnumerable<ILexeme> input) {
-        var sequence = L.Seq([L.Builtin("sqrt"), L.Num("16")]);
+        var sequence = L.Seq(input.ToArray());
         IExpression? result = Parser.Parse(sequence, L.GimmeFactory(sequence));
         Assert.IsTrue(result is Sqrt);
         AssertNumber(result!.Children().ToArray()[0], 16);
+    }
+
+    [TestMethod]
+    public void SquareRootPlus1() {
+        var sequence = L.Seq([L.Builtin("sqrt"), L.Num("16"), L.Add, L.Num("1")]);
+        IExpression? result = Parser.Parse(sequence, L.GimmeFactory(sequence));
+        AssertExpr(result, LexemeID.Add);
+        var children = result!.Children().ToArray();
+
+        Assert.IsTrue(children[0] is Sqrt);
+        AssertNumber(children[0].Children().ToArray()[0], 16);
+        AssertNumber(children[1], 1);
+    }
+
+    [TestMethod]
+    public void SquareRootTimes2() {
+        var sequence = L.Seq([L.Builtin("sqrt"), L.Num("16"), L.Mult, L.Num("2")]);
+        IExpression? result = Parser.Parse(sequence, L.GimmeFactory(sequence));
+        AssertExpr(result, LexemeID.Multiply);
+        var children = result!.Children().ToArray();
+
+        Assert.IsTrue(children[0] is Sqrt);
+        AssertNumber(children[0].Children().ToArray()[0], 16);
+        AssertNumber(children[1], 2);
     }
 
     public static IEnumerable<SequentialLexeme[]> BadOperatorData => [
@@ -534,7 +558,25 @@ public sealed class ParserTests
         Assert.Fail("Expected parser exception, ran sucessfully instead");
     }
 
+    [TestMethod]
+    public void SqrtPlusTwelve() {
+        SequentialLexeme[] input = L.Seq([L.Builtin("sqrt"), L.Add, L.Num("12")]);
 
+        try {
+            Parser.Parse(input, L.GimmeFactory(input));
+        } catch (Exception e) {
+            Assert.IsInstanceOfType<AggregateException>(e);
+            var es = ((AggregateException)e).InnerExceptions;
+
+            Assert.HasCount(1, es);
+            Assert.IsInstanceOfType<ParserException>(es[0]);
+            var ex = (ParserException)es[0];
+            Assert.AreEqual(ParserErrorID.WrongArgumentCount, ex.ID);
+            Assert.AreEqual(0, ex.Index);
+        }
+
+        Assert.Fail("Expected parser exception, ran successfully instead");
+    }
 }
 
 [TestClass]
@@ -835,6 +877,14 @@ public sealed class LexerTests
             L.Mult,
             L.Builtin("ceil"),
             L.Num("1.5"),
+        ]));
+    }
+
+    [TestMethod]
+    public void CompactSqrt() {
+        var result = Lexer.Lex("sqrt64").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Inval("sqrt64"),
         ]));
     }
 
