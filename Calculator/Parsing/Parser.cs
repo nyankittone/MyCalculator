@@ -134,9 +134,64 @@ public static class Parser
         }
     }
 
+    private static IEnumerable<IExpression> CollectFunctionArgs(
+        IEnumerator<SequentialLexeme> tokens,
+        ref ParserStuff stuff,
+        Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext,
+        uint depth)
+    {
+        // For now, unitl I implement comma support in the lexer, this thing will only resolve 0 or
+        // 1 arguments.
+
+        if(tryNext(tokens).Lexeme.HasValue) {
+            switch(tokens.Current.ID) {
+                case LexemeID.Constant:
+                case LexemeID.Variable:
+                case LexemeID.Number:
+                case LexemeID.BuiltinFunc:
+                case LexemeID.CustomFunc:
+                case LexemeID.IncPrecedence:
+                    return TryParseNumber(tokens, ref stuff, tryNext, depth) switch {
+                        IExpression expr => [expr],
+                        null => [new Number(0)],
+                    };
+                case LexemeID.Invalid:
+                case LexemeID.DecPrecedence:
+                    throw new NotImplementedException("Invalid token after function name");
+                default: break;
+            }
+        }
+
+        return [];
+    }
+
+    // tries to call something that it thinks is a function, and returns an appropriate IExpression
+    // if successful.
+    private static (IExpression?, bool) TryCallFunction (
+        IEnumerator<SequentialLexeme> tokens,
+        ref ParserStuff stuff,
+        Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext,
+        uint depth)
+    {
+        // get the function parameter list
+        // try to call the function
+            // NOTE: Doing this may not work all that well if a custom function is used twice in one
+            // expression, assuming we use the same custom function instance.
+        string functionName = tokens.Current.Token; // This feels gross :(
+        IEnumerable<IExpression> args = CollectFunctionArgs(tokens, ref stuff, tryNext, depth);
+        try {
+            return (SymbolFinder.Singleton.GetExprFromFunc(functionName, args), false);
+        } catch(ArgumentException e) {
+            stuff.Errors.Add(e); // TODO: Create a ParserException from this!
+        }
+
+        return (null, false);
+    }
+
     private static (IExpression?, bool) MaybeRecurse (
         IEnumerator<SequentialLexeme> tokens,
         ref ParserStuff stuff,
+        Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext,
         uint depth)
     => tokens.Current.ID switch {
         LexemeID.IncPrecedence =>
@@ -150,6 +205,7 @@ public static class Parser
             false
         ),
         LexemeID.Number => (new Number(tokens.Current.Token), false),
+        LexemeID.BuiltinFunc or LexemeID.CustomFunc => TryCallFunction(tokens, ref stuff, tryNext, depth),
         _ => throw new ArgumentException("Invalid lexeme type for MaybeRecurse()"),
     };
 
@@ -157,10 +213,11 @@ public static class Parser
     private static IExpression? TryParseNumber(
             IEnumerator<SequentialLexeme> tokens,
             ref ParserStuff stuff,
+            Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext,
             uint depth)
     {
         SequentialLexeme openParenthLexeme = tokens.Current;
-        (IExpression? returned, bool openParenthReported) = MaybeRecurse(tokens, ref stuff, depth);
+        (IExpression? returned, bool openParenthReported) = MaybeRecurse(tokens, ref stuff, tryNext, depth);
         if (returned is null)
         {
             try
@@ -309,7 +366,7 @@ public static class Parser
             // This right here is the first token to actually make any sense. Ensure that it's
             // either a number or some expression surrounded by parenthesis, and if so, if the
             // parenthesis contain anything.
-            if (TryParseNumber(tokens, ref stuff, depth) is IExpression resolved)
+            if (TryParseNumber(tokens, ref stuff, tryNext, depth) is IExpression resolved)
             {
                 right = resolved;
             }
@@ -331,7 +388,7 @@ public static class Parser
                         op = tokens.Current;
                         break;
                     case FindOperatorReturn.CurrentIsNumber:
-                        TryParseNumber(tokens, ref stuff, depth);
+                        TryParseNumber(tokens, ref stuff, tryNext, depth);
                         continue;
                     case FindOperatorReturn.OutOfLexemes:
                         continue;
@@ -347,7 +404,7 @@ public static class Parser
                     continue;
                 }
 
-                IExpression? operand = TryParseNumber(tokens, ref stuff, depth);
+                IExpression? operand = TryParseNumber(tokens, ref stuff, tryNext, depth);
 
                 switch (op.Value.ID)
                 {

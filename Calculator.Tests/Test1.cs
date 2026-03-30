@@ -275,9 +275,9 @@ public sealed class ParserTests
 
     [TestMethod]
     [DynamicData(nameof(SqrtTests))]
-    public void SquareRoot() {
-        var input = L.Seq([L.Builtin("sqrt"), L.Num("16")]);
-        IExpression? result = Parser.Parse(input, L.GimmeFactory(input));
+    public void SquareRoot(IEnumerable<ILexeme> input) {
+        var sequence = L.Seq([L.Builtin("sqrt"), L.Num("16")]);
+        IExpression? result = Parser.Parse(sequence, L.GimmeFactory(sequence));
         Assert.IsTrue(result is Sqrt);
         AssertNumber(result!.Children().ToArray()[0], 16);
     }
