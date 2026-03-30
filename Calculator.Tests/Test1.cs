@@ -266,6 +266,22 @@ public sealed class ParserTests
         AssertNumber(result, input.Expected);
     }
 
+    public static IEnumerable<IEnumerable<ILexeme>> SqrtTests => [
+        [L.Builtin("sqrt"), L.Num("16")],
+        [L.Builtin("sqrt"), L.Open, L.Num("16"), L.Close],
+        [L.Open, L.Builtin("sqrt"), L.Num("16"), L.Close],
+        [L.Builtin("sqrt"), L.Open, L.Open, L.Open, L.Num("16"), L.Close, L.Close, L.Close],
+    ];
+
+    [TestMethod]
+    [DynamicData(nameof(SqrtTests))]
+    public void SquareRoot() {
+        var input = L.Seq([L.Builtin("sqrt"), L.Num("16")]);
+        IExpression? result = Parser.Parse(input, L.GimmeFactory(input));
+        Assert.IsTrue(result is Sqrt);
+        AssertNumber(result!.Children().ToArray()[0], 16);
+    }
+
     public static IEnumerable<SequentialLexeme[]> BadOperatorData => [
         L.Seq([L.Num("9"), L.Inval(";KJ:J;jh;lkjH"), L.Num("10")]),
         L.Seq([L.Num("9"), L.Inval(";KJ:J;jh;lkjH"), L.Num("10"), L.Sub, L.Num("21")]),
