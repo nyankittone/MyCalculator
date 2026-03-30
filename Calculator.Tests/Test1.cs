@@ -691,14 +691,32 @@ public sealed class LexerTests
         AssertArraysEqual(result, L.Seq([
             L.Num("9"),
             L.Add,
-            L.Inval("bleh"),
-            L.Num("47"),
+            L.Inval("bleh47"),
             L.Open,
             L.Open,
             L.Close,
             L.Inval("vvvvvvvvMEOW"),
             L.Exp,
             L.Num("10"),
+        ]));
+    }
+
+    [TestMethod]
+    public void NumberLetterSymbols()
+    {
+        var result = Lexer.Lex("garn47+19/12m((b00b69))").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Inval("garn47"),
+            L.Add,
+            L.Num("19"),
+            L.Div,
+            L.Num("12"),
+            L.Inval("m"),
+            L.Open,
+            L.Open,
+            L.Inval("b00b69"),
+            L.Close,
+            L.Close,
         ]));
     }
 
