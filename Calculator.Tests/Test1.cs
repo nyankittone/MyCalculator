@@ -43,18 +43,24 @@ static class L
 [TestClass]
 public sealed class ParserTests
 {
+    // Helper function for checking if something is an expression of a certain LexemeID. Implicitly,
+    // this means also ensuring the expression is not null.
     private void AssertExpr(IExpression? expression, LexemeID id)
     {
         Assert.IsNotNull(expression);
         Assert.AreEqual(id, (expression!).ID);
     }
 
+    // Helper function for checking if an expression is simply just a single number, and if so, that
+    // it's specifically the number passed in.
     private void AssertNumber(IExpression? expression, in decimal number)
     {
         AssertExpr(expression, LexemeID.Number);
         Assert.AreEqual(number, (expression!).Evaluate());
     }
 
+    // Helper function that asserts that the passed in expression is a certain operator, with its
+    // left and right branches being numbers.
     private void AssertSimpleTree(
         IExpression? expr, decimal expectedLeft, LexemeID expectedOperator, decimal expectedRight
     )
@@ -244,6 +250,20 @@ public sealed class ParserTests
         }
 
         AssertSimpleTree(node, 6, LexemeID.Multiply, 6);
+    }
+
+    public static IEnumerable<(Lexeme, decimal)> Constants => [
+        (L.Constant("sixseven"), 67),
+        (L.Constant("pi"), 3.1415926535897932384626433832795m),
+        (L.Constant("e"), 2.7182818284590452353602874713527m),
+    ];
+
+    [TestMethod]
+    [DynamicData(nameof(Constants))]
+    public void TestConstants((Lexeme Lex, decimal Expected) input) {
+        var sequence = L.Seq([input.Lex]);
+        IExpression? result = Parser.Parse(sequence, L.GimmeFactory(sequence));
+        AssertNumber(result, input.Expected);
     }
 
     public static IEnumerable<SequentialLexeme[]> BadOperatorData => [
@@ -497,6 +517,8 @@ public sealed class ParserTests
 
         Assert.Fail("Expected parser exception, ran sucessfully instead");
     }
+
+
 }
 
 [TestClass]

@@ -2,9 +2,6 @@ using System;
 using System.Collections.Generic;
 namespace Calculator;
 
-// TODO: Add ErrorID field to ParserException and BasicParserException, and have the Message field
-// get computed based on that ID
-
 public enum ParserErrorID
 {
     ExpectedNumber,
@@ -17,7 +14,7 @@ public enum ParserErrorID
     Other,
 }
 
-public static class ParserErrorIDExt
+public static class ParserErrorIDExtensions
 {
     public static string MakeMessage(this ParserErrorID ID, ref SequentialLexeme? lexeme) => (ID, lexeme) switch
     {
@@ -283,106 +280,105 @@ public static class Parser
         bool openParenthReported = false;
 
         try {
-        (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
-        LexemeID? oldAddOperator = null;
-        LexemeID? oldMultOperator = null;
+            (IExpression? left, IExpression? mid, IExpression? right) = (null, null, null);
+            LexemeID? oldAddOperator = null;
+            LexemeID? oldMultOperator = null;
 
-        SequentialLexeme? openLexeme = depth > 0 ? tokens.Current : null;
+            SequentialLexeme? openLexeme = depth > 0 ? tokens.Current : null;
 
-        if (FindValidOperand(tokens, ref stuff, tryNext))
-        {
-            return (null, false);
-        }
-
-        // This right here is the first token to actually make any sense. Ensure that it's
-        // either a number or some expression surrounded by parenthesis, and if so, if the
-        // parenthesis contain anything.
-        if (TryParseNumber(tokens, ref stuff, depth) is IExpression resolved)
-        {
-            right = resolved;
-        }
-
-        EndTestResult checkLexeme = EndTestResult.Nah(); // just initialize with *something* idfk
-
-        // read two tokens at a time, first one should be an operator, second should be a number
-        while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
-        {
-            // We want to make it so that detecting the operator will stop if we encounter any
-            // number of garbage lexemes, followed by a number or opening parenthesis. This will
-            // require on the case of this sequence of lexemes occuring, that we skip finding the
-            // next operand, since we already know the next operand, as well as skipping switching
-            // on the operator, since we know it's invalid.
-            SequentialLexeme? op = null;
-            switch (FindValidOperator(tokens, ref stuff, tryNext))
-            {
-                case FindOperatorReturn.CurrentIsOperator:
-                    op = tokens.Current;
-                    break;
-                case FindOperatorReturn.CurrentIsNumber:
-                    TryParseNumber(tokens, ref stuff, depth);
-                    continue;
-                case FindOperatorReturn.OutOfLexemes:
-                    continue;
-            }
-            
-            int oldErrorCount = stuff.Errors.Count;
             if (FindValidOperand(tokens, ref stuff, tryNext))
             {
-                if (oldErrorCount == stuff.Errors.Count)
-                {
-                    stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnbalancedOperator, op.Value));
-                }
-                continue;
+                return (null, false);
             }
 
-            IExpression? operand = TryParseNumber(tokens, ref stuff, depth);
-
-            switch (op.Value.ID)
+            // This right here is the first token to actually make any sense. Ensure that it's
+            // either a number or some expression surrounded by parenthesis, and if so, if the
+            // parenthesis contain anything.
+            if (TryParseNumber(tokens, ref stuff, depth) is IExpression resolved)
             {
-                case LexemeID.Exponent:
-                    if (operand is IExpression _ && right is IExpression _)
-                    {
-                        right = new Exponent(right, operand);
-                    }
-                    break;
-                case LexemeID.Multiply:
-                case LexemeID.Divide:
-                    mid = Merge(mid, right, oldMultOperator);
-                    oldMultOperator = op.Value.ID; // these two lines might have to be inside the above if
-                    right = operand;
-                    break;
-                case LexemeID.Add:
-                case LexemeID.Subtract:
-                    mid = Merge(mid, right, oldMultOperator);
-                    right = operand;
-                    oldMultOperator = null;
-                    left = Merge(left, mid, oldAddOperator);
-                    oldAddOperator = op.Value.ID;
-                    mid = null;
-                    break;
-                default:
-                    stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.InvalidOperator, op.Value));
-                    break;
+                right = resolved;
             }
-        }
 
+            EndTestResult checkLexeme = EndTestResult.Nah(); // just initialize with *something* idfk
 
-        if (checkLexeme.EndOfStream && depth > 0)
-        {
-            stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, openLexeme.Value));
-            openParenthReported = true;
-        }
+            // read two tokens at a time, first one should be an operator, second should be a number
+            while ((checkLexeme = tryNext(tokens)).Lexeme.HasValue)
+            {
+                // We want to make it so that detecting the operator will stop if we encounter any
+                // number of garbage lexemes, followed by a number or opening parenthesis. This will
+                // require on the case of this sequence of lexemes occuring, that we skip finding the
+                // next operand, since we already know the next operand, as well as skipping switching
+                // on the operator, since we know it's invalid.
+                SequentialLexeme? op = null;
+                switch (FindValidOperator(tokens, ref stuff, tryNext))
+                {
+                    case FindOperatorReturn.CurrentIsOperator:
+                        op = tokens.Current;
+                        break;
+                    case FindOperatorReturn.CurrentIsNumber:
+                        TryParseNumber(tokens, ref stuff, depth);
+                        continue;
+                    case FindOperatorReturn.OutOfLexemes:
+                        continue;
+                }
 
-        mid = Merge(mid, right, oldMultOperator);
-        return (left, mid, oldAddOperator) switch
-        {
-            (null, null, _) => (null, openParenthReported),
-            (null, _, _) => (mid, openParenthReported),
-            (_, null, _) => (left, openParenthReported),
-            (_, _, LexemeID.Add) => (new Add(left, mid), openParenthReported),
-            (_, _, LexemeID.Subtract) => (new Subtract(left, mid), openParenthReported),
-            _ => throw new ArgumentException("Invalid operator specified for final merge"),
-        };
+                int oldErrorCount = stuff.Errors.Count;
+                if (FindValidOperand(tokens, ref stuff, tryNext))
+                {
+                    if (oldErrorCount == stuff.Errors.Count)
+                    {
+                        stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnbalancedOperator, op.Value));
+                    }
+                    continue;
+                }
+
+                IExpression? operand = TryParseNumber(tokens, ref stuff, depth);
+
+                switch (op.Value.ID)
+                {
+                    case LexemeID.Exponent:
+                        if (operand is IExpression _ && right is IExpression _)
+                        {
+                            right = new Exponent(right, operand);
+                        }
+                        break;
+                    case LexemeID.Multiply:
+                    case LexemeID.Divide:
+                        mid = Merge(mid, right, oldMultOperator);
+                        oldMultOperator = op.Value.ID; // these two lines might have to be inside the above if
+                        right = operand;
+                        break;
+                    case LexemeID.Add:
+                    case LexemeID.Subtract:
+                        mid = Merge(mid, right, oldMultOperator);
+                        right = operand;
+                        oldMultOperator = null;
+                        left = Merge(left, mid, oldAddOperator);
+                        oldAddOperator = op.Value.ID;
+                        mid = null;
+                        break;
+                    default:
+                        stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.InvalidOperator, op.Value));
+                        break;
+                }
+            }
+
+            if (checkLexeme.EndOfStream && depth > 0)
+            {
+                stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.UnclosedParenthesis, openLexeme.Value));
+                openParenthReported = true;
+            }
+
+            mid = Merge(mid, right, oldMultOperator);
+            return (left, mid, oldAddOperator) switch
+            {
+                (null, null, _) => (null, openParenthReported),
+                (null, _, _) => (mid, openParenthReported),
+                (_, null, _) => (left, openParenthReported),
+                (_, _, LexemeID.Add) => (new Add(left, mid), openParenthReported),
+                (_, _, LexemeID.Subtract) => (new Subtract(left, mid), openParenthReported),
+                _ => throw new ArgumentException("Invalid operator specified for final merge"),
+            };
         } catch(Exception e) when(e is (ArgumentException or NullReferenceException or ArithmeticException)) {
             stuff.Errors.Add(e);
 
