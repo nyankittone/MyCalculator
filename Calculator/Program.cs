@@ -49,7 +49,7 @@ class Program
                 );
             }
         }
-        else if(error is (StackOverflowException or ArgumentException or ArithmeticException or NullReferenceException)) {
+        else if(error is (StackOverflowException or ArgumentException or ArithmeticException or NullReferenceException or FormatException)) {
             Exception printedError = error.InnerException ?? error;
             Console.Error.WriteLine (
                 $"\x1b[1;91mPROCESS ERROR:\x1b[m {error.Message}\r\n" + 

@@ -145,8 +145,9 @@ public static class Parser
                     true => tokens.Current.ID == LexemeID.DecPrecedence ? EndTestResult.Nah() : EndTestResult.Ye(tokens.Current),
                     false => EndTestResult.StreamEnd(),
                     }, depth + 1),
-        LexemeID.Number => (new Number(tokens.Current.Token), false),
         LexemeID.Constant => (new Number(SymbolFinder.Singleton.GetFalliableNumber(tokens.Current.Token)), false),
+        // LexemeID.Number => (new Number(tokens.Current.Token), false),
+        _ => (new Number(tokens.Current.Token), false),
     };
 
     // Wraps around MaybeRecurse, and on failure, tries to add errors to the error list.
@@ -391,7 +392,7 @@ public static class Parser
                 _ => throw new ArgumentException("Invalid operator specified for final merge"),
             };
         }
-        catch (Exception e) when (e is (ArgumentException or NullReferenceException or ArithmeticException))
+        catch (Exception e) when (e is (ArgumentException or NullReferenceException or ArithmeticException or FormatException))
         {
             stuff.Errors.Add(e);
 
