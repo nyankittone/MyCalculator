@@ -265,8 +265,9 @@ public static class Lexer
     // symbol, if we get to the end of doing a PartialLex without actually adding any more lexemes.
     private static SequentialLexeme? LexSymbol(string token, int index, in int bigIndex, ref LexemeSpawner spawn)
     {
-        const string matchInvalid = @"^[^0-9\(\)\+\-\*\/]*";
-        const string matchSymbol = @"^[^0-9\(\)\+\-\*\/][^\(\)\+\-\*\/]*";
+        const string letters = @"[^0-9\(\)\+\-\*\/]";
+        const string matchInvalid = @"^" + letters + @"*";
+        const string matchSymbol = @"^" + letters + @"[^\(\)\+\-\*\/]*";
 
         var match = RE.Regex.Match(token[index..], matchSymbol);
         if(!match.Success) {
