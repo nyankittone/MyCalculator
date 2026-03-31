@@ -53,9 +53,9 @@ class Program
             Exception printedError = error.InnerException ?? error;
             Console.Error.WriteLine (
                 $"\x1b[1;91mPROCESS ERROR:\x1b[m {error.Message}\r\n" + 
-                $"\x1b[1m---------------------\x1b[m\r\n" + 
+                $"\x1b[1m---------------------------------\x1b[m\r\n" + 
                 $"{printedError}\r\n" +
-                $"\x1b[1m---------------------\x1b[m\r\n"
+                $"\x1b[1m---------------------------------\x1b[m\r\n"
             );
         } else {
             Console.Error.WriteLine(">>>FUCK<<<");

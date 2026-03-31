@@ -903,5 +903,23 @@ public sealed class LexerTests
             L.Close,
         ]));
     }
+
+    [TestMethod]
+    public void SqrtNeg1() {
+        var result = Lexer.Lex("sqrt -1").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Builtin("sqrt"),
+            L.Num("-1"),
+        ]));
+    }
+
+    [TestMethod]
+    public void TwoNegativeTwo() {
+        var result = Lexer.Lex("2 -2").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Num("2"),
+            L.Num("-2"),
+        ]));
+    }
 }
 

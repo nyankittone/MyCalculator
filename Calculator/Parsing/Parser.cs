@@ -147,15 +147,18 @@ public static class Parser
         // For now, unitl I implement comma support in the lexer, this thing will only resolve 0 or
         // 1 arguments.
 
-        if(tryNext(tokens).Lexeme.HasValue) {
-            switch(tokens.Current.ID) {
+        if (tryNext(tokens).Lexeme.HasValue)
+        {
+            switch (tokens.Current.ID)
+            {
                 case LexemeID.Constant:
                 case LexemeID.Variable:
                 case LexemeID.Number:
                 case LexemeID.BuiltinFunc:
                 case LexemeID.CustomFunc:
                 case LexemeID.IncPrecedence:
-                    return TryParseNumber(tokens, ref stuff, tryNext, depth) switch {
+                    return TryParseNumber(tokens, ref stuff, tryNext, depth) switch
+                    {
                         IExpression expr => [expr],
                         null => [new Number(0)],
                     };
@@ -171,7 +174,7 @@ public static class Parser
 
     // tries to call something that it thinks is a function, and returns an appropriate IExpression
     // if successful.
-    private static (IExpression?, bool) TryCallFunction (
+    private static (IExpression?, bool) TryCallFunction(
         IEnumerator<SequentialLexeme> tokens,
         ref ParserStuff stuff,
         Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext,
@@ -179,30 +182,34 @@ public static class Parser
     {
         // get the function parameter list
         // try to call the function
-            // NOTE: Doing this may not work all that well if a custom function is used twice in one
-            // expression, assuming we use the same custom function instance.
+        // NOTE: Doing this may not work all that well if a custom function is used twice in one
+        // expression, assuming we use the same custom function instance.
         string functionName = tokens.Current.Token; // This feels gross :(
         IEnumerable<IExpression> args = CollectFunctionArgs(tokens, ref stuff, tryNext, depth);
-        try {
+        try
+        {
             return (SymbolFinder.Singleton.GetExprFromFunc(functionName, args), false);
-        } catch(ArgumentException e) {
+        }
+        catch (ArgumentException e)
+        {
             stuff.Errors.Add(e); // TODO: Create a ParserException from this!
         }
 
         return (null, false);
     }
 
-    private static (IExpression?, bool) MaybeRecurse (
+    private static (IExpression?, bool) MaybeRecurse(
         IEnumerator<SequentialLexeme> tokens,
         ref ParserStuff stuff,
         Func<IEnumerator<SequentialLexeme>, EndTestResult> tryNext,
         uint depth)
-    => tokens.Current.ID switch {
+    => tokens.Current.ID switch
+    {
         LexemeID.IncPrecedence =>
             ParseRec(tokens, ref stuff, (tokens) => tokens.MoveNext() switch
                     {
-                    true => tokens.Current.ID == LexemeID.DecPrecedence ? EndTestResult.Nah() : EndTestResult.Ye(tokens.Current),
-                    false => EndTestResult.StreamEnd(),
+                        true => tokens.Current.ID == LexemeID.DecPrecedence ? EndTestResult.Nah() : EndTestResult.Ye(tokens.Current),
+                        false => EndTestResult.StreamEnd(),
                     }, depth + 1),
         LexemeID.Constant or LexemeID.Variable => (
             new Number(SymbolFinder.Singleton.GetFalliableNumber(tokens.Current.Token)),
