@@ -164,7 +164,9 @@ public static class Parser
                     };
                 case LexemeID.Invalid:
                 case LexemeID.DecPrecedence:
-                    throw new NotImplementedException("Invalid token after function name");
+                    // throw new NotImplementedException("Invalid token after function name");
+                    stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExpectedNumber, tokens.Current));
+                    return [new Number(0)];
                 default: break;
             }
         }
@@ -184,15 +186,27 @@ public static class Parser
         // try to call the function
         // NOTE: Doing this may not work all that well if a custom function is used twice in one
         // expression, assuming we use the same custom function instance.
-        string functionName = tokens.Current.Token; // This feels gross :(
+        SequentialLexeme functionName = tokens.Current; // This feels gross :(
         IEnumerable<IExpression> args = CollectFunctionArgs(tokens, ref stuff, tryNext, depth);
+
+        try {
+            SequentialLexeme the = tokens.Current;
+            if(!args.GetEnumerator().MoveNext() && the.IsOperator()) {
+                uint num = the.SeqIndex;
+                tokens.Reset();
+                for(uint i = 0; i < num; i++) {
+                    tokens.MoveNext();
+                }
+            }
+        } catch(InvalidOperationException) {}
+
         try
         {
-            return (SymbolFinder.Singleton.GetExprFromFunc(functionName, args), false);
+            return (SymbolFinder.Singleton.GetExprFromFunc(functionName.Token, args), false);
         }
-        catch (ArgumentException e)
+        catch (ArgumentException)
         {
-            stuff.Errors.Add(e); // TODO: Create a ParserException from this!
+            stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.WrongArgumentCount, functionName));
         }
 
         return (null, false);
@@ -320,6 +334,7 @@ public static class Parser
         SequentialLexeme lexeme = tokens.Current;
         if (!lexeme.IsOperator())
         {
+            Console.Error.WriteLine("AAA");
             stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.ExpectedOperator, lexeme));
             if (lexeme.ID == LexemeID.DecPrecedence)
             {
@@ -463,7 +478,7 @@ public static class Parser
                 _ => throw new ArgumentException("Invalid operator specified for final merge"),
             };
         }
-        catch (Exception e) when (e is (ArgumentException or NullReferenceException or ArithmeticException or FormatException))
+        catch (Exception e) when (e is (ArgumentException or NullReferenceException or ArithmeticException or FormatException or NotImplementedException))
         {
             stuff.Errors.Add(e);
 

@@ -577,6 +577,16 @@ public sealed class ParserTests
 
         Assert.Fail("Expected parser exception, ran successfully instead");
     }
+
+    [TestMethod]
+    public void RandPlusNine() {
+        SequentialLexeme[] input = L.Seq([L.Builtin("rand"), L.Add, L.Num("9")]);
+        var result = Parser.Parse(input, L.GimmeFactory(input));
+        AssertExpr(result, LexemeID.Add);
+        IExpression[] children = result!.Children().ToArray();
+        Assert.IsInstanceOfType<Rand>(children[0]);
+        AssertNumber(children[1], 9);
+    }
 }
 
 [TestClass]
