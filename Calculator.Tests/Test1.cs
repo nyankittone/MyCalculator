@@ -921,5 +921,13 @@ public sealed class LexerTests
             L.Num("-2"),
         ]));
     }
+
+    [TestMethod]
+    public void NegativeOne() {
+        var result = Lexer.Lex("-1").ToArray();
+        AssertArraysEqual(result, L.Seq([
+            L.Num("-1"),
+        ]));
+    }
 }
 

@@ -17,6 +17,15 @@ public enum SymbolType
     CustomFunction,
 }
 
+public static class SymbolTypeExtensions
+{
+    public static bool Found(this SymbolType thing) => thing is
+        SymbolType.Constant or
+        SymbolType.BuiltinFunction or
+        SymbolType.Variable or
+        SymbolType.CustomFunction;
+}
+
 // Fuck my stupid kitty life, this will be so fucking inefficient :sob:
 public struct SymbolFinder()
 {
@@ -37,7 +46,8 @@ public struct SymbolFinder()
         return returned;
     }
 
-    private static (IExpression, IExpression) ValidateTwo(IEnumerable<IExpression> inputs) {
+    private static (IExpression, IExpression) ValidateTwo(IEnumerable<IExpression> inputs)
+    {
         var iter = inputs.GetEnumerator();
         if (iter.MoveNext() == false)
         {
@@ -82,7 +92,8 @@ public struct SymbolFinder()
     // evil singleton,,,,
     public static SymbolFinder Singleton = new();
 
-    private Dictionary<string, decimal> constantStash = new Dictionary<string, decimal> {
+    private Dictionary<string, decimal> constantStash = new Dictionary<string, decimal>
+    {
         ["sixseven"] = 67,
         ["pi"] = 3.1415926535897932384626433832795m,
         ["e"] = 2.7182818284590452353602874713527m,
@@ -106,7 +117,8 @@ public struct SymbolFinder()
             ["log10"] = (range) => new Log10(ValidateOne(range)),
             ["log2"] = (range) => new Log2(ValidateOne(range)),
 
-            ["randRange"] = (range) => {
+            ["randRange"] = (range) =>
+            {
                 (var first, var second) = ValidateTwo(range);
                 return new RandRange(first, second);
             },

@@ -221,6 +221,7 @@ public static class Lexer
     {
         outputList.Clear();
 
+        // This might not actually be needed in any capacity.
         if (wasCloseParenth)
         {
             if (CheckOperator(token[index..]) is int lenny)
@@ -285,13 +286,16 @@ public static class Lexer
                 return spawn.CustomFunc(match.Value, index + bigIndex);
         }
 
-        match = RE.Regex.Match(token[index..], matchInvalid); // This may be like
+        var secondMatch = RE.Regex.Match(token[index..], matchInvalid); // This may be like
                                                               // slightly slow?
-        if(!match.Success) {
+        if(!secondMatch.Success) {
             return null;
         }
 
-        return spawn.Invalid(match.Value, index + bigIndex);
+        return spawn.Invalid((
+            SymbolFinder.Singleton.GetSymbolType(secondMatch.Value).Found() ?
+                match : secondMatch
+            ).Value, index + bigIndex);
     }
 
     // This function takes an input string, and squirts out a series of lexemes for it.
@@ -309,6 +313,12 @@ public static class Lexer
             int startIndex = 0;
             string bigToken = input[bigIndex..endIndex];
             bool wasCloseParenth = false;
+
+            // Checking for a number immediately
+            if(CheckNumber(bigToken) is int instantNumIndex) {
+                yield return spawn.Number(bigToken[..instantNumIndex], instantNumIndex);
+                startIndex = instantNumIndex;
+            }
 
             while (bigToken[startIndex..].Length > 0)
             {
