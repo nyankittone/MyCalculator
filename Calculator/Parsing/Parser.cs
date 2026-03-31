@@ -189,16 +189,24 @@ public static class Parser
         SequentialLexeme functionName = tokens.Current; // This feels gross :(
         IEnumerable<IExpression> args = CollectFunctionArgs(tokens, ref stuff, tryNext, depth);
 
-        try {
+        // HACK: Effectively rewinding the lexeme iterator by 1 if we get a token after the function
+        // name, and it's an operator. I doubt this is fast, and it'd be better if I just changed
+        // some function returns to signify to not iterate if we encountered an operator. But I'm
+        // lazy.
+        try
+        {
             SequentialLexeme the = tokens.Current;
-            if(!args.GetEnumerator().MoveNext() && the.IsOperator()) {
+            if (!args.GetEnumerator().MoveNext() && the.IsOperator())
+            {
                 uint num = the.SeqIndex;
                 tokens.Reset();
-                for(uint i = 0; i < num; i++) {
+                for (uint i = 0; i < num; i++)
+                {
                     tokens.MoveNext();
                 }
             }
-        } catch(InvalidOperationException) {}
+        }
+        catch (InvalidOperationException) { }
 
         try
         {
@@ -248,7 +256,8 @@ public static class Parser
             try
             {
                 // If this condition is true, that means we have an empty parenthesis block
-                if (tokens.Current.SeqIndex - openParenthLexeme.SeqIndex < 2)
+                uint sequenceDiff = tokens.Current.SeqIndex - openParenthLexeme.SeqIndex;
+                if (sequenceDiff == 1)
                 {
                     stuff.Errors.Add(stuff.ErrorMaker.MakeException(ParserErrorID.EmptyParenthesis, openParenthLexeme));
                 }
